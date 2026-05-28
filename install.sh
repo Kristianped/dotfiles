@@ -14,11 +14,11 @@ source "$script_dir/zsh/zshenv"
 ################
 
 skull=$(<"$script_dir/skull.txt")
-mes_color $magenta "$skull"
+mes_color "$magenta" "$skull"
 echo
-mes_color $yellow "!!! WARNING !!!"
-mes_color $light_red "This script will delete all your configuration files!"
-mes_color $light_red "Use it at your own risks."
+mes_color "$yellow" "!!! WARNING !!!"
+mes_color "$light_red" "This script will delete all your configuration files!"
+mes_color "$light_red" "Use it at your own risks."
 
 if ! prompt_ask; then
   exit 0

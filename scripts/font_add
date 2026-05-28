@@ -9,9 +9,9 @@ extension1="otf"
 extension2="ttf"
 font_dir="$XDG_DATA_HOME/fonts/NerdFonts"
 
-mes_color $light_green "[-] Nerd Font Downloader [-]"
-mes_color $light_green "----------------------------"
-mes_color $light_green "[-]   Select Nerd Font   [-]"
+mes_color "$light_green" "[-] Nerd Font Downloader [-]"
+mes_color "$light_green" "----------------------------"
+mes_color "$light_green" "[-]   Select Nerd Font   [-]"
 
 font_list=("0xProto" "3270" "AdwaitaMono" "Agave" "AnonymousPro" "Arimo" "AtkinsonHyperlegibleMono" "AurulentSansMono" "BigBlueTerminal" "BitstreamVeraSansMono" "CascadiaCode" "CascadiaMono" "CodeNewRoman" "ComicShannsMono" "CommitMono" "Cousine" "D2Coding" "DaddyTimeMono" "DejaVuSansMono" "DepartureMono" "DroidSansMono" "EnvyCodeR" "FantasqueSansMono" "FiraCode" "FiraMono" "GeistMono" "Go-Mono" "Gohu" "Hack" "Hasklig" "HeavyData" "Hermit" "iA-Writer" "IBMPlexMono" "Inconsolata" "InconsolataGo" "InconsolataLGC" "IntelOneMono" "Iosevka" "IosevkaTerm" "IosevkaTermSlab" "JetBrainsMono" "Lekton" "LiberationMono" "Lilex" "MartianMono" "Meslo" "Monaspace" "Monofur" "Monoid" "Mononoki" "MPlus" "NerdFontsSymbolsOnly" "Noto" "OpenDyslexic" "Overpass" "ProFont" "ProggyClean" "Recursive" "RobotoMono" "ShareTechMono" "SourceCodePro" "SpaceMono" "Terminus" "Tinos" "Ubuntu" "UbuntuMono" "UbuntuSans" "VictorMono" "ZedMono" "Quit")
 
@@ -22,7 +22,7 @@ extract_files() {
 
   if cd "$dir" >/dev/null 2>&1; then
     info "Extracting $zip_file"
-    extract -r $zip_file
+    extract -r "$zip_file"
     cd - >/dev/null 2>&1 || error "Failed to extract"
   else
     error "Failed to extract file '$zip_file' in folder '$dir'"
@@ -30,11 +30,11 @@ extract_files() {
 }
 
 find_extension() {
-  local dir files ret_val
+  local dir ret_val
   dir=$1
 
   if cd "$dir" >/dev/null 2>&1; then
-    if (shopt -s nullglob dotglob; f=(*.$extension1); ((${#f[@]}))); then
+    if (shopt -s nullglob dotglob; f=(*."$extension1"); ((${#f[@]}))); then
       ret_val=$extension1
     else
       ret_val=$extension2
@@ -57,23 +57,23 @@ select font_name in "${font_list[@]}"; do
   [[ $font_name == "Quit" ]] && break
 
   info "Downloading font '$font_name'"
-  downloaded_file=$(download -o https://github.com/ryanoasis/nerd-fonts/releases/latest/download/$font_name.zip)
+  downloaded_file=$(download -o https://github.com/ryanoasis/nerd-fonts/releases/latest/download/"$font_name".zip)
   [[ -f $downloaded_file ]] || error "Could not find file '$downloaded_file'"
 
   # Create temporary directory that gets deleted when script exits
   tmp_dir=$(mktemp -d)
-  trap "rm -rf $tmp_dir" EXIT
+  trap 'rm -rf $tmp_dir' EXIT
 
   # Extract the zip-file inside the tmp-folder
-  extract_files $tmp_dir $downloaded_file
+  extract_files "$tmp_dir" "$downloaded_file"
 
   # Get the extension for font files; otf or ttf
-  extension=$(find_extension $tmp_dir)
+  extension=$(find_extension "$tmp_dir")
 
   # Create font-folder, copy all font-files into that folder and update font-cache
   mkdir -p "$font_dir"
-  find $tmp_dir -type f -iname "*.$extension" -exec cp -fv {} $font_dir \;
-  font_update $font_dir
+  find "$tmp_dir" -type f -iname "*.$extension" -exec cp -fv {} "$font_dir" \;
+  font_update "$font_dir"
 
   break
 done

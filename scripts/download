@@ -89,11 +89,12 @@ _pipe() {
 }
 
 _get_temp_dir() {
-  local tmp_file=$(mktemp)
-  local tmp_dir=$(dirname $tmp_file)
-  rm -f $tmp_file
+  local tmp_file tmp_dir
+  tmp_file=$(mktemp)
+  tmp_dir=$(dirname "$tmp_file")
+  rm -f "$tmp_file"
 
-  echo $tmp_dir
+  echo "$tmp_dir"
 }
 
 _find_download_dir() {
@@ -105,7 +106,8 @@ _find_download_dir() {
   local default_download_dir=${XDG_DOWNLOAD_DIR:-$CURRENT_DIR}
 
   if is_true $is_temp; then
-    local tmp_dir=$(_get_temp_dir)
+    local tmp_dir
+    tmp_dir=$(_get_temp_dir)
     download_dir="$tmp_dir"
   else
     if [ -n "$download_dir" ]; then
@@ -167,13 +169,13 @@ _parse_args() {
     error "URL not provided"
   fi
 
-  file_name=${file_name:-$(basename $url)}
+  file_name=${file_name:-$(basename "$url")}
 }
 
 _parse_args "$@"
 
 if is_true $is_pipe; then
-  if ! _pipe $url; then
+  if ! _pipe "$url"; then
     error "URL did not respond successfully, retry or check your connection: $url"
     exit 1
   fi
@@ -181,10 +183,10 @@ else
   _find_download_dir
   file_path="$download_dir/$file_name"
 
-  if ! _fetch $url $file_path; then
+  if ! _fetch "$url" "$file_path"; then
     error "URL did not respond successfully, retry or check your connection: $url"
     exit 1
   fi
 
-  echo $file_path
+  echo "$file_path"
 fi
