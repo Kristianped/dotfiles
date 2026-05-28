@@ -1,0 +1,68 @@
+#!/usr/bin/env zsh
+
+# Directories for dotfiles and work projects
+export DOTFILES=${DOTFILES:-$HOME/.dotfiles}
+export WORKSPACE=${WORKSPACE:-$HOME/workspace}
+
+
+# +-----+
+# | XDG |
+# +-----+
+# https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html
+export XDG_CONFIG_HOME=${XDG_CONFIG_HOME:-$HOME/.config}
+export XDG_CACHE_HOME=${XDG_CACHE_HOME:-$HOME/.cache}
+export XDG_DATA_HOME=${XDG_DATA_HOME:-$HOME/.local/share}
+export XDG_STATE_HOME=${XDG_STATE_HOME:-$HOME/.local/state}
+# XDG base directories not in specification.
+export XDG_BIN_HOME=${XDG_BIN_HOME:-$HOME/.local/bin}
+export XDG_MAN_HOME=${XDG_MAN_HOME:-$XDG_DATA_HOME/man}
+
+# Ensure XDG directories exist.
+for xdgdir in XDG_{CONFIG,CACHE,DATA,STATE,BIN,MAN}_HOME; do
+  [[ -e ${(P)xdgdir} ]] || mkdir -p ${(P)xdgdir}
+done
+
+
+# +----------+
+# | LANGUAGE |
+# +----------+
+export LANG="${LANG:-en_US.UTF-8}"
+
+
+# +-----+
+# | ZSH |
+# +-----+
+export ZDOTDIR=${ZDOTDIR:-$XDG_CONFIG_HOME/zsh}
+export ZSH_COMPDUMP=$XDG_CACHE_HOME/zsh/zcompdump
+export HISTFILE=$ZDOTDIR/.zhistory
+
+
+# +-----------+
+# | JETBRAINS |
+# +-----------+
+export TOOLBOX_HOME=${TOOLBOX_HOME:-$XDG_DATA_HOME/JetBrains/Toolbox}
+
+
+# +-------+
+# | PATHS |
+# +-------+
+# Ensure path arrays do not contain duplicates.
+typeset -gU path fpath cdpath mailpath manpath
+
+# Set the list of directories that zsh searches for commands.
+path=(
+  $XDG_BIN_HOME
+  $HOME/bin
+  $XDG_DATA_HOME/nvim/bin
+  $XDG_DATA_HOME/python/bin
+  $TOOLBOX_HOME/scripts
+  /usr/local/bin
+  /usr/local/sbin
+  $path
+)
+
+# Add XDG_MAN_HOME to manpath
+manpath=(
+  $XDG_MAN_HOME
+  $manpath
+)

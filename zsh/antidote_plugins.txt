@@ -1,0 +1,49 @@
+#
+# Completions
+#
+mattmc3/zephyr path:plugins/completion
+zsh-users/zsh-completions path:src kind:fpath
+mattmc3/ez-compinit path:functions kind:autoload post:compstyle-bind
+
+
+#
+# Zephyr
+#
+mattmc3/zephyr path:plugins/color
+mattmc3/zephyr path:plugins/directory
+mattmc3/zephyr path:plugins/history
+
+
+#
+# Ohmyzsh
+#
+ohmyzsh/ohmyzsh path:plugins/command-not-found
+ohmyzsh/ohmyzsh path:plugins/eza
+ohmyzsh/ohmyzsh path:plugins/gradle
+
+
+#
+# Prompt
+#
+romkatv/powerlevel10k
+
+
+#
+# FZF
+#
+Aloxaf/fzf-tab
+Freed-Wu/fzf-tab-source
+
+
+#
+# Utilities
+#
+paulirish/git-open
+
+
+#
+# Fish-like plugins
+#
+zsh-users/zsh-syntax-highlighting
+zsh-users/zsh-autosuggestions post:autosuggestions-keybind
+zsh-users/zsh-history-substring-search post:history-substring-search-keybind

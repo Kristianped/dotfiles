@@ -1,0 +1,14 @@
+##? Post load function for zsh-autosuggestions
+
+# https://github.com/zsh-users/zsh-autosuggestions
+# vi
+bind2maps viins -- vi-forward-word Ctrl+F
+bind2maps viins -- vi-add-eol Ctrl+E
+
+if (( terminfo[colors] >= 256 )); then
+  LS_COLORS+=':no=38;5;248'
+  ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=244'        # the default is hard to see
+else
+  LS_COLORS+=':no=1;30'
+  ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=black,bold' # the default is outside of 8-color range
+fi

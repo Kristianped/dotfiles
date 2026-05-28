@@ -1,0 +1,136 @@
+#!/usr/bin/env zsh
+
+###############################
+# EXPORT ENVIRONMENT VARIABLE #
+###############################
+
+# Source zshcommon from dotfiles-folder
+DOTFILES=${DOTFILES:-$HOME/.dotfiles}
+[[ -f $DOTFILES/zsh/zshcommon ]] && source $DOTFILES/zsh/zshcommon
+
+
+# +-----+
+# | FZF |
+# +-----+
+
+# Directory where fzf is installed
+export FZF_PATH=$XDG_DATA_HOME/fzf
+
+# Directory where fzf-git is installed
+export FZF_GIT_PATH=$XDG_DATA_HOME/fzf-git
+
+# Fzf history
+export FZF_CACHE_PATH=$XDG_CACHE_HOME/fzf
+
+# Fzf config directory
+export FZF_CONFIG_PATH=$XDG_CONFIG_HOME/fzf
+
+
+# +--------+
+# | EDITOR |
+# +--------+
+export EDITOR=nvim
+export VISUAL=nvim
+export PAGER=less
+export MANPAGER=env\ BATMAN_IS_BEING_MANPAGER=yes\ batman
+export MANROFFOPT=-c
+export LESSOPEN="|lesspipe.sh %s"
+export LESS_SHOW_IMAGE=1
+
+
+# +------+
+# | MISE |
+# +------+
+export MISE_CONFIG_DIR=$XDG_CONFIG_HOME/mise
+export MISE_DATA_DIR=$XDG_DATA_HOME/mise
+export MISE_CACHE_DIR=$XDG_CACHE_HOME/mise
+export MISE_GLOBAL_CONFIG_FILE=$MISE_CONFIG_DIR/config.toml
+export MISE_BIN_FILE=$XDG_BIN_HOME/mise
+
+
+# +------+
+# | JAVA |
+# +------+
+export GRADLE_USER_HOME=$XDG_CONFIG_HOME/gradle
+
+
+# +--------+
+# | PYTHON |
+# +--------+
+export PYTHON_HISTORY=$XDG_STATE_HOME/python_history
+export PYTHONUSERBASE=$XDG_DATA_HOME/python
+export PIPX_HOME=$PYTHONUSERBASE/pipx
+export PIPX_BIN_DIR=$XDG_BIN_HOME
+export PIPX_MAN_DIR=$XDG_MAN_HOME
+export SHIV_ROOT=$PYTHONUSERBASE/shiv
+
+
+# +------+
+# | NODE |
+# +------+
+export NODE_REPL_HISTORY=$XDG_STATE_HOME/node_repl_history
+export NODENV_ROOT=$XDG_DATA_HOME/nodenv
+export NPM_CONFIG_INIT_MODULE=$XDG_CONFIG_HOME/npm/config/npm-init.js
+export NPM_CONFIG_CACHE=$XDG_CACHE_HOME/npm
+export NPM_CONFIG_TMP=$XDG_RUNTIME_DIR/npm
+export NPM_CONFIG_USERCONFIG=$XDG_CONFIG_HOME/npm/npmrc
+
+
+# +--------+
+# | DOTNET |
+# +--------+
+export DOTNET_CLI_HOME=$XDG_DATA_HOME/dotnet
+
+
+# +------+
+# | RUST |
+# +------+
+export RUSTUP_HOME=$XDG_DATA_HOME/rustup
+export CARGO_HOME=$XDG_DATA_HOME/cargo
+
+
+# +-------------+
+# | DOCKER/KUBE |
+# +-------------+
+export DOCKER_CONFIG=$XDG_CONFIG_HOME/docker
+export KUBE_HOME=$XDG_CONFIG_HOME/kube
+export KUBECONFIG=$KUBE_HOME/configs/config.yaml
+export MINIKUBE_HOME=$XDG_DATA_HOME/minikube
+
+
+# +------+
+# | NVIM |
+# +------+
+export VIMCONFIG=$XDG_CONFIG_HOME/nvim
+export NVIM_PYTHON_LOG_FILE=$XDG_STATE_HOME/nvim/nvim_python.log
+export NVIM_PYTHON_LOG_LEVEL=DEBUG
+
+
+# +-----------+
+# | XDG-NINJA |
+# +-----------+
+export GNUPGHOME=$XDG_DATA_HOME/gnupg
+export CUDA_CACHE_PATH=$XDG_CACHE_HOME/nv
+export XAUTHORITY=$XDG_RUNTIME_DIR/Xauthority
+export WINEPREFIX=$XDG_DATA_HOME/wine
+export GTK2_RC_FILES=$XDG_CONFIG_HOME/gtk-2.0/gtkrc
+export NVM_DIR=$XDG_DATA_HOME/nvm
+export SDKMAN_DIR=$XDG_DATA_HOME/sdkman
+
+
+# +-----------------+
+# | Plugin managers |
+# +-----------------+
+
+export PLUGIN_MANAGER="omz"
+
+
+# Oh-My-Zsh
+export ZSH=$XDG_DATA_HOME/ohmyzsh
+export ZSH_CUSTOM=$ZSH/custom
+
+# Antidote
+export ANTIDOTE_DIR=$XDG_DATA_HOME/antidote
+
+# Zinit
+export ZINIT_DIR=$XDG_DATA_HOME/zinit

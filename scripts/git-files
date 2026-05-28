@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+# list files which have changed since main/master/trunk
+
+review_base=$(git remote show origin | sed -n '/HEAD branch/s/.*: //p')
+merge_name=$(git merge-base HEAD $review_base)
+
+git diff --name-only $merge_name

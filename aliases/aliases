@@ -1,0 +1,146 @@
+#!/usr/bin/env bash
+
+alias bigf='find / -xdev -type f -size +500M'  # display "big" files > 500M
+
+# +-----+
+# | X11 |
+# +-----+
+
+alias xclass='xprop | grep WM_CLASS' # display xprop class
+
+# +----+
+# | ls |
+# +----+
+
+#alias ls='ls --color=auto'
+#alias l='ls -l'
+#alias ll='ls -lahF'
+#alias lls='ls -lahFtr'
+#alias la='ls -A'
+#alias lc='ls -CF'
+
+# +------+
+# | wget |
+# +------+
+alias wget='wget --hsts-file=$XDG_DATA_HOME/wget-hsts'
+
+# +----+
+# | cp |
+# +----+
+
+alias cp='cp -iv'
+alias mv='mv -iv'
+alias rm='rm -iv'
+
+# +------+
+# | grep |
+# +------+
+
+alias grep="grep -P -i --color=auto"
+
+# +------+
+# | xlip |
+# +------+
+
+alias cb='xclip -sel clip'
+
+# +------+
+# | dust |
+# +------+
+
+alias dust='du -sh * | sort -hr'
+
+# +------+
+# | ping |
+# +------+
+
+alias pg='ping 8.8.8.8'
+
+# +------+
+# | time |
+# +------+
+
+alias time='/usr/bin/time'
+
+# +----+
+# | bc |
+# +----+
+
+alias calc="noglob calcul"
+
+# +-----+
+# | bat |
+# +-----+
+
+alias batl='bat --paging=never -l log'
+
+# +-------+
+# | fonts |
+# +-------+
+
+alias font-update='fc-cache -f -v'
+
+# +---------+
+# | netstat |
+# +---------+
+
+alias port="netstat -tulpn | grep"
+
+# +--------+
+# | Neovim |
+# +--------+
+
+alias vim='nvim'
+alias vi='nvim'
+alias svim='sudoedit'
+alias dvim="vim -u /usr/share/nvim/archlinux.vim" # nvim with default config
+alias nvimc='rm -I $VIMCONFIG/swap/*'             # clean nvim swap file
+alias nvimcu='rm -I $VIMCONFIG/undo/*'            # clean the vim undo
+alias nvimd='nvim --noplugin -u NONE'             # launch nvim without any plugin or config (nvim debug)
+alias nvimfr='nvim +e /tmp/scratchpad.md -c "set spelllang=fr"'
+alias lvim='\vim -c "set nowrap|syntax off"'        # fast vim for big files / big oneliner
+
+# +------+
+# | tmux |
+# +------+
+
+alias tmuxk='tmux kill-session -t'
+alias tmuxa='tmux attach -t'
+alias tmuxl='tmux list-sessions'
+
+# +-------+
+# | tmuxp |
+# +-------+
+
+alias mux='tmuxp load'
+
+# +--------+
+# | docker |
+# +--------+
+alias dockls="docker container ls | awk 'NR > 1 {print \$NF}'"                  # display names of running containers
+alias dockRr='docker rm $(docker ps -a -q)'                                     # delete every containers / images
+alias dockRr='docker rm $(docker ps -a -q) && docker rmi $(docker images -q)'   # delete every containers / images
+alias dockstats='docker stats $(docker ps -q)'                                  # stats on images
+alias dockimg='docker images'                                                   # list images installed
+alias dockprune='docker system prune -a'                                        # prune everything
+alias dockceu='docker-compose run --rm -u $(id -u):$(id -g)'                    # run as the host user
+alias dockce='docker-compose run --rm'
+
+# +----------------+
+# | docker-compose |
+# +----------------+
+alias docker-compose-dev='docker-compose -f docker-compose-dev.yml' # run a different config file than the default one
+
+# +---------+
+# | folders |
+# +---------+
+alias home='cd $HOME/'
+alias work='cd $HOME/workspace'
+alias doc='cd $HOME/Documents'
+alias dow='cd $HOME/Downloads'
+alias dot='cd $HOME/.dotfiles'
+
+# +-------+
+# | maven |
+# +-------+
+source "$DOTFILES/aliases/mvn"

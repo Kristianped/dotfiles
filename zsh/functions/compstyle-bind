@@ -1,0 +1,4 @@
+##? Post load function for zephyr/completion
+
+compstyleinit
+compstyle "zephyr"

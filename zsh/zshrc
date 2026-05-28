@@ -1,0 +1,63 @@
+#/usr/bin/env zsh
+
+# Extended glob needed for setup
+setopt extended_glob
+
+# Autoload functions directory
+fpath=($DOTFILES/zsh/functions $fpath)
+autoload -Uz ${fpath[1]}/*(:t)
+
+# Be sure to set any supplemental completions directories before compinit is run.
+fpath=($DOTFILES/zsh/completions $fpath)
+
+
+# +----------------+
+# | BINDINGS SETUP |
+# -----------------+
+source $DOTFILES/zsh/bindings_init.zsh
+
+
+# +------+
+# | MISE |
+# -------+
+(( $+commands[mise] )) && eval "$(mise activate zsh)"
+
+
+# +-----+
+# | FZF |
+# ------+
+(( $+commands[fzf] )) && source $FZF_CONFIG_PATH/fzf.zsh
+
+
+# +--------+
+# | ZOXIDE |
+# ---------+
+(( $+commands[zoxide] )) && eval "$(zoxide init zsh)"
+
+
+# +-----------+
+# | Oh My Zsh |
+# +-----------+
+source $DOTFILES/zsh/antidote.zsh
+
+
+# +---------+
+# | ALIASES |
+# +---------+
+source "$DOTFILES/aliases/aliases"
+
+
+# +---------+
+# | zstyles |
+# ----------+
+source "$DOTFILES/zsh/zstyles.zsh"
+
+
+# +--------------+
+# | KEY BINDINGS |
+# +--------------+
+source $DOTFILES/zsh/bindings.zsh
+
+
+# To customize prompt, run `p10k configure` or edit ~/.config/zsh/.p10k.zsh.
+[[ ! -f ~/.config/zsh/.p10k.zsh ]] || source ~/.config/zsh/.p10k.zsh

@@ -1,0 +1,19 @@
+#!/bin/bash
+
+source "$DOTFILES/bootstrap"
+
+font_dir=$1
+
+if has_cmd fc-cache; then
+  [[ -d $font_dir ]] || error "Directory not found: $font_dir"
+  fc-cache -v -f $font_dir
+
+  case $? in
+    [0-1])
+      exit 0
+    ;;
+    *)
+      exit $?
+    ;;
+  esac
+fi

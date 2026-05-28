@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+source "$DOTFILES/bootstrap"
+
+name=$(basename "$0")
+path="${1:-$(pwd)}"
+
+[[ -d $path ]] || error "Not a directory: $path"
+has_cmd fzf || error "Fzf is not installed"
+
+fd --color=always -t x --exclude $name . $path | fzf \
+  --ansi \
+  --delimiter : \
+  --header="Press enter to execute" \
+  --preview "bat --color=always {}" \
+  --bind "enter:become(echo \"Executing file: {}\"; {})"

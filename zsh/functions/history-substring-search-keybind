@@ -1,0 +1,12 @@
+##? Post load function for zsh-history-substring-search plugin
+# https://github.com/zsh-users/zsh-history-substring-search
+
+# Emacs
+bind2maps emacs -- history-substring-search-up Up Ctrl+P
+bind2maps emacs -- history-substring-search-down Down Ctrl+N
+
+# Vi
+bind2maps viins -- history-substring-search-up Up
+bind2maps viins -- history-substring-search-down Down
+bind2maps vicmd -- history-substring-search-up K
+bind2maps vicmd -- history-substring-search-down J

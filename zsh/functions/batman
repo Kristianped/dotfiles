@@ -1,0 +1,9 @@
+##? batman - Read system manual pages (man) using bat as the manual page formatter.
+
+if command -v batman; then
+  BAT_THEME="Monokai Extended" command batman $@
+  return $?
+fi
+
+man $@ | bat --language=man --plain --color always --theme="Monokai Extended"
+return $?

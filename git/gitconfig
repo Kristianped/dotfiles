@@ -1,0 +1,49 @@
+[user]
+    name=Kristian Pedersen
+    email=extkrp@brreg.no
+
+[core]
+    editor="flatpak run re.sonny.Commit"
+
+[re.sonny.Commit]
+    title-length-hint=50
+    body-length-wrap=72
+    auto-capitalize-title=true
+
+[diff "lesspipe"]
+    textconv = LESSQUIET=1 lesspipe.sh
+    binary = true
+    cachetextconv = true
+
+[color]
+    ui = auto
+    branch = auto
+    diff = auto
+    status = auto
+
+[color "decorate"]
+    remoteBranch = 202
+
+[color "diff"]
+    whitespace = red reverse
+    commit = 214
+    frag = 38
+    func = 87
+    new = 76
+    old = 196
+
+[color "grep"]
+    filename = magenta
+    linenumber = green
+
+[push]
+    default = simple
+
+[status]
+    showUntrackedFiles = all
+
+[alias]
+    fixup = "!sh -c '(git diff-files --quiet || (echo Unstaged changes, please commit or stash with --keep-index; exit 1)) && COMMIT=$(git rev-parse $1) && git commit --fixup=$COMMIT && git rebase -i --autosquash $COMMIT~1' -"
+
+  # Do a hard reset against the upstream branch we are currently tracking
+    hardreset = !git reset --hard @{u}

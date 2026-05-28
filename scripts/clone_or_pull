@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+repo_path="${1}"
+project_path="${2}"
+
+echo
+
+if cd "${project_path}" >/dev/null 2>&1; then
+  echo "Updating ${repo_path}..."
+  git pull
+  cd - >/dev/null 2>&1 || exit
+else
+  echo "Installing ${repo_path}..."
+  mkdir -p "$(dirname ${project_path})"
+  git clone "https://github.com/${repo_path}.git" "${project_path}" "${@:3}"
+fi

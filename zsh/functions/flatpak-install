@@ -1,0 +1,29 @@
+if ! command -v fzf; then
+  return 1
+fi
+
+# CLR=$(for i in {0..7}; do echo "tput setaf $i"; done)
+BLK=\$(tput setaf 0); RED=\$(tput setaf 1); GRN=\$(tput setaf 2); YLW=\$(tput setaf 3); BLU=\$(tput setaf 4);
+MGN=\$(tput setaf 5); CYN=\$(tput setaf 6); WHT=\$(tput setaf 7); BLD=\$(tput bold); RST=\$(tput sgr0);
+
+AWK_VAR="awk -v BLK=${BLK} -v RED=${RED} -v GRN=${GRN} -v YLW=${YLW} -v BLU=${BLU} -v MGN=${MGN} -v CYN=${CYN} -v WHT=${WHT} -v BLD=${BLD} -v RST=${RST}"
+
+# Searches only from flathub repository
+flatpak remote-ls --user flathub --cached --columns=app,name,description \
+  | awk -v cyn=$(tput setaf 6) -v blu=$(tput setaf 4) -v bld=$(tput bold) -v res=$(tput sgr0) \
+  '{
+    app_info="";
+    for(i=2;i<=NF;i++){
+      app_info=cyn app_info" "$i
+    };
+    print blu bld $2" -" res app_info "|" $1
+    }' \
+  | column -t -s "|" -R0 \
+  | fzf \
+    --ansi \
+    --with-nth=1.. \
+    --prompt="Install > " \
+    --preview-window "nohidden,40%,<50(down,50%,border-rounded)" \
+    --preview "flatpak --user remote-info flathub {-1} | $AWK_VAR -F\":\" '{print YLW BLD \$1 RST WHT \$2}'" \
+    --bind "enter:execute(flatpak install --user flathub {-1})"
+zle reset-prompt

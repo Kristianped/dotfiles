@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+
+source "$DOTFILES/bootstrap"
+
+HIDE_CONFIG=1
+if [ "$1" == "--no-config" ] || [ "$1" == "-nc" ]; then
+  HIDE_CONFIG=
+fi
+
+get_config() {
+  cmd_get_config="$(git config --get-all git-extras.info.config-grep)"
+  if [ -z "$cmd_get_config" ]; then
+    git config --list
+  else
+    eval "$cmd_get_config"
+  fi
+}
+
+most_recent_commit() {
+  cmd_get_log="$(git config --get-all git-extras.info.log)"
+  if [ -z "$cmd_get_log" ]; then
+    git log --max-count=1 --pretty=short
+  else
+    eval "$cmd_get_log"
+  fi
+}
+
+submodules() {
+  # short sha1
+  git submodule status | sed 's/\([^abcdef0-9]\{0,2\}\)\([abcdef0-9]\{7\}\)\([abcdef0-9]\{33\}\)\(.*\)/\1\2\4/'
+}
+
+local_branches() {
+  git branch
+}
+
+remote_branches() {
+  git branch -r
+}
+
+remote_urls() {
+  git remote -v
+}
+
+info "## Remote URLs:"
+mes_nc "$(remote_urls)"
+
+info "## Remote Branches:"
+mes_nc "$(remote_branches)"
+
+info "## Local Branches:"
+mes_nc "$(local_branches)"
+
+SUBMODULES_LOG=$(submodules)
+if [ -n "$SUBMODULES_LOG" ]; then
+  info "## Submodule(s):"
+  mes_nc "$SUBMODULES_LOG"
+fi
+
+info "## Most Recent Commit:"
+mes_nc "$(most_recent_commit)"
+
+if [ -n "$HIDE_CONFIG" ]; then
+  info "## Configuration (.git/config):"
+  mes_nc "$(get_config)"
+fi

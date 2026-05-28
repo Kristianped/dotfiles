@@ -1,0 +1,54 @@
+#!/usr/bin/env zsh
+
+##? fzf - Function that calls fzf
+##? It will look for a fzf executable in the directory set via FZF_PATH. If FZF_PATH is not set the executable is searched in known fzf-folders inside HOME, /usr, and /opt.
+##? If the executable is not found in any of the above, the executable is looked up via 'command -v fzf'
+
+function _find_fzf_dir {
+  local fzf_base fzfdirs dir
+
+  test -d "$FZF_PATH" && fzf_base="$FZF_PATH"
+
+  if [[ -z "$fzf_base" ]]; then
+    fzfdirs=(
+      "$HOME/.fzf"
+      "$HOME/.nix-profile/share/fzf"
+      "$HOME/.local/share}/fzf"
+      "$MSYSTEM_PREFIX/share/fzf"
+      "/usr/local/opt/fzf"
+      "/opt/homebrew/opt/fzf"
+      "/usr/share/fzf"
+      "/usr/local/share/examples/fzf"
+    )
+    for dir in $fzfdirs; do
+      if [ -d "$dir" ]; then
+        fzf_base="$dir"
+        break
+      fi
+    done
+  fi
+
+  echo "$fzf_base"
+}
+
+typeset -g C_RED=$'\e[1;31;1m'
+typeset -g C_RESET=$'\e[0m'
+typeset -g fzf_base_dir=$(_find_fzf_dir)
+
+function _fzf {
+  local fzf_exec
+
+  if [[ -x "$fzf_base_dir/bin/fzf" ]]; then
+    $fzf_base_dir/bin/fzf $@
+    return $?
+  elif command -v fzf; then
+    command fzf $@
+    return $?
+  else
+    local message="fzf executable not found"
+    printf "%bERROR: %s%b\n" "${C_RED}" "${message}" "${C_RESET}" >&2
+    return 1
+  fi
+}
+
+_fzf "$@"

@@ -1,0 +1,156 @@
+#!/usr/bin/env bash
+
+set -o errexit
+set -o pipefail
+set -o nounset
+
+source "$DOTFILES/bootstrap"
+current_dir=$(pwd)
+remove_archive=0
+own_dir=0
+files=()
+
+_usage() {
+  cat <<\EOF
+  Utility program to extract archives
+
+  Usage: extract [options...] [file ...]
+  -h, --help        - Shows this text
+  -r, --remove      - Remove archive after unpacking.
+  -d, --directory   - Extract archive into its own directory
+EOF
+}
+
+_parse_args() {
+  if [ $# -eq 0 ]; then
+    _usage
+    exit 0
+  fi
+
+  for i in "$@"; do
+    case $1 in
+      -h|--help)
+        _usage
+        exit 0
+        ;;
+      -r|--remove)
+        remove_archive=1
+        shift
+        ;;
+      -d|--directory)
+        own_dir=1
+        shift
+        ;;
+      -*|--*)
+        error "Unknown option: '$1'"
+        ;;
+      *)
+        ;;
+    esac
+  done
+
+  files=("$@")
+}
+
+_extract_to_dir() {
+  local file full_path extract_dir_name extract_dir
+  file="$1"
+
+  # Absolute path to the file
+  full_path="$(readlink -f "$file" 2>/dev/null || echo "$file")"
+
+  # Get basename and remove extension
+  extract_dir_name="$(basename "$file")"
+  extract_dir_name="${extract_dir_name%.*}"
+
+  # Handle .tar extension
+  if [[ "$extract_dir_name" =~ \.tar$ ]]; then
+    extract_dir_name="${extract_dir_name%.*}"
+  fi
+
+  # If there's a file or directory with the same name as 'extract_dir_name'
+  # add a random string to the end of the extract directory
+  if [[ -e $extract_dir_name ]]; then
+    local rnd=$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 6)
+    extract_dir="${extract_dir_name}-${rnd}"
+  else
+    extract_dir="$extract_dir_name"
+  fi
+
+  # Create the directory
+  mkdir -p "$extract_dir"
+
+  # Cd into the directory and extract archive
+  cd "$extract_dir" || return 1
+  extract_file "$full_path" || return 1
+  cd "$current_dir"
+
+  # remove the archive-file if '-r' is provided
+  is_true $remove_archive && rm -r "$full_path"
+
+
+  ### If the extracted archive contains a single folder, move everything up
+  local -a content
+  shopt -s dotglob nullglob
+  content=("$extract_dir"/*)
+  shopt -u dotglob nullglob
+
+  # Check content-length is 1 and that content[0] exists
+  if [[ ${#content[@]} -eq 1 && -e "${content[0]}" ]]; then
+    local content_name
+    content_name="$(basename "${content[0]}")"
+
+    # If the extracted file/folder has the same name as extract_dir(without random suffix) we need to take a few steps
+    # 1. Move and rename the extracted file/folder to a temporary random name
+    # 2. Delete the empty folder
+    # 3. Rename the extracted file/folder back to the original name
+    if [[ "$content_name" == "$extract_dir_name" ]]; then
+      local tmp_name
+      tmp_name="$(mktemp -u)"
+      tmp_name="$(basename "$tmp_name")"
+
+      command mv "${content[0]}" "$tmp_name" && command rmdir "$extract_dir" && command mv "$tmp_name" "$extract_dir"
+
+    # If the extracted file/folder is a directory, we move eveything inside up one level
+    # 1. Cd into the new directory
+    # 2. Move everything inside the extracted folder up one level
+    # 3. Delete the empty folder
+    # 4. Cd back into the current directory
+    elif [[ -d "${content[0]}" ]]; then
+      shopt -s dotglob
+      cd "$extract_dir" && mv "$content_name"/* . && rmdir "$content_name" && cd "$current_dir"
+      shopt -u dotglob
+
+    # If the extracted file/folder does not exist in the current directory
+    # 1. Move the extracted file/folder to the current directory
+    # 2. Delete the empty folder
+    elif [[ ! -e "$content_name" ]]; then
+      command mv "${content[0]}" . && command rmdir "$extract_dir"
+    fi
+
+  # If content-length is 0 then we simply remove the new directory
+  elif [[ ${#content[@]} -eq 0 ]]; then
+    command rmdir "$extract_dir"
+  fi
+}
+
+_main() {
+  for file in "${files[@]}"; do
+    [[ -f $file ]] || continue
+
+    if is_true $own_dir; then
+      _extract_to_dir "$file"
+      continue
+    fi
+
+    # Absolute path to the file
+    full_path="$(readlink -f "$file" 2>/dev/null || echo "$file")"
+
+    # Extract archive
+    extract_file "$full_path" && is_true $remove_archive && rm -r "$full_path"
+
+  done
+}
+
+_parse_args "$@"
+_main

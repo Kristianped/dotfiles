@@ -1,0 +1,95 @@
+#! /usr/bin/env bash
+
+source "$DOTFILES/bootstrap"
+
+show_image() {
+  local file dim
+
+  file=${1/#\~\//$HOME/}
+  if [[ ! -r $file ]]; then
+    if [[ $file =~ ^(.+):([0-9]+)\ *$ ]] && [[ -r ${BASH_REMATCH[1]} ]]; then
+      file=${BASH_REMATCH[1]}
+    elif [[ $file =~ ^(.+):([0-9]+):[0-9]+\ *$ ]] && [[ -r ${BASH_REMATCH[1]} ]]; then
+      file=${BASH_REMATCH[1]}
+    fi
+  fi
+
+  dim=${FZF_PREVIEW_COLUMNS}x${FZF_PREVIEW_LINES}
+
+  if [[ $dim == x ]]; then
+    dim=$(stty size < /dev/tty | awk '{print $2 "x" $1}')
+  elif ! [[ $KITTY_WINDOW_ID ]] && ((FZF_PREVIEW_TOP + FZF_PREVIEW_LINES == $(stty size < /dev/tty | awk '{print $1}'))); then
+    # Avoid scrolling issue when the Sixel image touches the bottom of the screen
+    # * https://github.com/junegunn/fzf/issues/2544
+    dim=${FZF_PREVIEW_COLUMNS}x$((FZF_PREVIEW_LINES - 1))
+  fi
+
+  # 1. Use icat (from Kitty) if kitten is installed
+  if [[ $KITTY_WINDOW_ID ]] || [[ $GHOSTTY_RESOURCES_DIR ]] && has_cmd kitten; then
+	# 1. 'memory' is the fastest option but if you want the image to be scrollable,
+    #    you have to use 'stream'.
+    #
+    # 2. The last line of the output is the ANSI reset code without newline.
+    #    This confuses fzf and makes it render scroll offset indicator.
+    #    So we remove the last line and append the reset code to its previous line.
+    kitten icat --clear --transfer-mode=memory --unicode-placeholder --stdin=no --place="$dim@0x0" "$file" | sed '$d' | sed $'$s/$/\e[m/'
+    echo
+
+  # 2. Use chafa with Sixel output
+  elif has_cmd chafa; then
+    chafa -s "$dim" "$file"
+    # Add a new line character so that fzf can display multiple images in the preview window
+    echo
+
+  # 3. If chafa is not found but imgcat is available, use it on iTerm2
+  elif has_cmd imgcat; then
+    # NOTE: We should use https://iterm2.com/utilities/it2check to check if the
+    # user is running iTerm2. But for the sake of simplicity, we just assume
+    # that's the case here.
+    imgcat -W "${dim%%x*}" -H "${dim##*x}" "$file"
+
+  # 4. Cannot find any suitable method to preview the image
+  else
+    file "$file"
+  fi
+}
+
+mime=$(file -Lbs --mime-type "$1")
+category=${mime%%/*}
+kind=${mime##*/}
+ext=${1##*.}
+image_shown=${LESS_SHOW_IMAGE:-0}
+
+if [[ "$kind" == "vnd.sqlite3" ]] && has_cmd yes sqlite3 bat; then
+  yes .q | sqlite3 "$1" | bat --color=always -plsql
+# https://github.com/wofr06/lesspipe/pull/107
+elif [[ -d "$1" ]]; then
+  if has_cmd eza; then
+	eza -ghla --group-directories-first --git --color=always --icons "$1"
+  elif has_cmd exa; then
+	exa -ghla --group-directories-first --color=always --icons "$1"
+  else
+    command ls -ghla
+  fi
+# https://github.com/wofr06/lesspipe/pull/110
+elif [[ "$kind" == "pdf" ]] && has_cmd pdftotext sed; then
+  pdftotext -q "$1" - | sed "s/\f/$(hr ─)\n/g"
+# https://github.com/wofr06/lesspipe/pull/115
+elif [[ "$kind" == "rfc822" ]] && has_cmd bat; then
+  bat --color=always -lEmail "$1"
+# https://github.com/wofr06/lesspipe/pull/106
+elif [[ "$category" == "image" ]]; then
+  (( image_shown )) && show_image "$1"
+  (( image_shown )) || file "$1"
+
+  if has_cmd exiftool; then
+	exiftool "$1" | bat --color=always -plyaml
+  fi
+elif [[ "$kind" == "json" ]] && has_cmd prettybat; then
+  prettybat --color=always "$1"
+# https://github.com/wofr06/lesspipe/pull/117
+elif [[ "$category" == "text" ]] && has_cmd prettybat; then
+  prettybat --color=always "$1"
+else
+  exit 1
+fi

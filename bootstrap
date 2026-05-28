@@ -1,0 +1,142 @@
+#!/usr/bin/env bash
+
+# Source colors
+script_dir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+source "$script_dir/colors"
+
+function prompt_ask {
+  while true; do
+    read -p 'Do you wish to continue? (y/n): ' answer
+    if [[ $answer = [YyNn] ]]; then
+      [[ $answer = [Yy] ]] && ret_val=0
+      [[ $answer = [Nn] ]] && ret_val=1
+      break
+    fi
+  done
+
+  return $ret_val
+}
+
+has_cmd() {
+  for opt in "$@"; do
+    if ! command -v "$opt" >/dev/null 2>&1; then
+      return 1
+    fi
+  done
+}
+
+# Check whether a string represents "true" (1, y, yes, t, true, o, on).
+is_true() {
+  local val
+  val=${1:-0}
+
+  case $val in
+    1) return 0;;
+    t|true) return 0;;
+    y|yes) return 0;;
+    o|on) return 0;;
+    *) return 1;;
+  esac
+}
+
+remove_broken_symlinks() {
+  find "$1" -maxdepth 1 -xtype l -delete
+}
+
+extract_file() {
+  local ret_val=0
+  [[ -f "$1" ]] || error "'$1' is not a valid file"
+
+  case $1 in
+    (*.tar.gz|*.tgz) tar zxvf "$1" ;;
+    (*.tar.bz2|*.tbz|*.tbz2) tar xvjf "$1" ;;
+    (*.tar.xz|*.txz) tar --xz --help &> /dev/null && tar --xz -xvf "$1" || xzcat "$1" | tar xvf - ;;
+    (*.tar.zma|*.tlz) tar --lzma --help &> /dev/null && tar --lzma -xvf "$1" || lzcat "$1" | tar xvf - ;;
+    (*.tar.zst|*.tzst) tar --zstd --help &> /dev/null && tar --zstd -xvf "$1" || zstdcat "$1" | tar xvf - ;;
+    (*.tar) tar xvf "$1" ;;
+    (*.tar.lz) tar xvf "$1" ;;
+    (*.tar.lz4) lz4 -c -d "$1" | tar xvf - ;;
+    (*.tar.lrz) lrzuntar "$1" ;;
+    (*.gz) gunzip -ck "$1" > "${1:t:r}" ;;
+    (*.bz2) bunzip2 "$1" ;;
+    (*.xz) unxz "$1" ;;
+    (*.lrz) lrunzip "$1" ;;
+    (*.lz4) lz4 -d "$1" ;;
+    (*.lzma) unlzma "$1" ;;
+    (*.z) uncompress "$1" ;;
+    (*.zip|*.war|*.jar|*.ear|*.sublime-package|*.ipa|*.ipsw|*.xpi|*.apk|*.aar|*.whl|*.vsix|*.crx|*.pk3|*.pk4) unzip "$1" ;;
+    (*.rar)
+      if has_cmd unrar; then
+        unrar x -ad "$1"
+      elif has_cmd unar; then
+        unar -o . "$1"
+      else
+        warning "Cannot extract RAR files: install unrar or unar" >&2
+        ret_val=1
+      fi ;;
+    (*.rpm) rpm2cpio "$1" | cpio --quiet -id ;;
+    (*.7z | *.7z.[0-9]* | *.pk7) 7za x "$1" ;;
+    (*.deb)
+      mkdir -p "control" "data"
+      ar vx "$1" > /dev/null
+      cd control; extract ../control.tar.*
+      cd ../data; extract ../data.tar.*
+      cd ..; command rm *.tar.* debian-binary ;;
+    (*.zst) unzstd --stdout "$1" > "${1:t:r}" ;;
+    (*.cab|*.exe) cabextract "$1" ;;
+    (*.cpio|*.obscpio) cpio -idmvF "$1" ;;
+    (*.zpaq) zpaq x "$1" ;;
+    (*.zlib) zlib-flate -uncompress < "$1" > "${file:r}" ;;
+    (*)
+        warning "'$1' cannot be extracted"
+        ret_val=1 ;;
+  esac
+
+  (( ret_val = ret_val > 0 ? ret_val : $? ))
+  return $ret_val
+}
+
+mes_color() {
+  local color=$1
+  local msg=$2
+
+  printf "%b%s%b\n" "$color" "$msg" "$reset"
+}
+
+mes_nc() {
+  mes_color "$reset" "$1"
+}
+
+error() {
+  local msg="ERROR: $1"
+  mes_color "$red" "$msg" >&2
+  return 1
+}
+
+warning() {
+  local msg="WARNING: $1"
+  mes_color "$yellow" "$msg"
+}
+
+warning_severe() {
+  local msg="WARNING: $1"
+  mes_color "$light_red" "$msg"
+}
+
+info() {
+  mes_color "$cyan" "$1"
+}
+
+success() {
+  mes_color "$green" "$1"
+}
+
+mes_update() {
+  local msg="--> Updating $1"
+  mes_color "$yellow" "$msg"
+}
+
+dot_install() {
+  printf "%b--> Installing %b%s %bconfig %b\n" "$blue" "$yellow" "$1" "$blue" "$reset"
+  . "$DOTFILES/install/install-${1}.sh"
+}

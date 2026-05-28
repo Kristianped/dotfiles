@@ -1,0 +1,117 @@
+#!/usr/bin/env bash
+# Set the wallpaper, defaulting to a color if none are available.
+#
+# Examples:
+#   dot-theme-set-bg --list          # Print wallpapers for active theme
+#   dot-theme-set-bg --keep-current  # Useful when rebooting
+#   dot-theme-set-bg FILE_NAME       # Rrovide a specific wallpaper
+#   dot-theme-set-bg                 # Pick the next available wallpaper
+
+set -o errexit
+set -o pipefail
+set -o nounset
+
+ARG="${1:-}"
+
+WALLPAPER_DIR="${XDG_CONFIG_HOME}/wallpaper"
+WALLPAPER_PATH="${WALLPAPER_DIR}/wallpaper.jpg"
+
+THEME_DATA_PATH="${WALLPAPER_DIR}/theme.json"
+
+eligible_wallpapers() {
+  jq --raw-output ".wallpaper.synergy[]" "${THEME_DATA_PATH}"
+}
+
+notify() {
+  local wallpaper="${1:-}"
+
+  notify-send "Wallpaper set to ${wallpaper}" 2>/dev/null || true
+}
+
+fallback() {
+  local color=
+  color="$(jq --raw-output ".wallpaper.color" "${THEME_DATA_PATH}")"
+
+  if [ "${color}" = "null" ]; then
+    echo "${THEME_DATA_PATH} is missing wallpaper.color value, aborting!" >&2
+    exit 1
+  fi
+
+  [ -L "${WALLPAPER_PATH}" ] && rm "${WALLPAPER_PATH}"
+  gsettings set org.gnome.desktop.background picture-options 'none'
+  gsettings set org.gnome.desktop.background primary-color '${color}'
+  notify "${color}"
+
+  exit
+}
+
+if [ "${ARG}" == "--list" ]; then
+  eligible_wallpapers
+  exit
+elif [[ -z "${ARG}" || "${ARG}" == "--keep-current" ]]; then
+  # We only want to set this if there's an existing symlink.
+  if [[ -L "${WALLPAPER_PATH}" && -e "${WALLPAPER_PATH}" ]]; then
+    CURRENT_WALLPAPER_PATH="$(readlink "${WALLPAPER_PATH}")"
+    CURRENT_WALLPAPER="$(basename "${CURRENT_WALLPAPER_PATH}")"
+  else
+    # This happens in 1 of 2 cases:
+    #   - This is the first time you've installed the dotfiles
+    #   - There's no eligible or available wallpapers for this theme
+    #
+    # For first time installs we want the first Tokyonight Moon wallpaper to
+    # be used, so let's set the last one. Later on when the next wallpaper gets
+    # selected it will wrap back around and choose the first.
+    #
+    # If there's no eligible wallpaper the logic to pick the next one will null
+    # this out so it'll use the fallback.
+    CURRENT_WALLPAPER="starry-night.jpg"
+  fi
+
+  # Avoid setting the next wallpaper if we're keeping the current one. We don't
+  # exit early so we can still fallback to a color if something went wrong.
+  if [ "${ARG}" == "--keep-current" ]; then
+    NEXT_WALLPAPER="${CURRENT_WALLPAPER}"
+  else
+    # Parse out the next wallpaper.
+    #
+    # if ($arr | length) == 0 then null
+    #   - Avoid divide by zero errors if the array is empty.
+    #
+    # ($arr | index($current)) as $idx
+    #   - Check to see if the current wallpaper is in the list.
+    #
+    # if $idx == null then $arr[0]
+    #   - Default to the first item if the current wallpaper isn't found.
+    #
+    # else $arr[($idx + 1) % ($arr | length)]
+    #   - Get the next item in the list and wrap to the start if at the last item.
+    NEXT_WALLPAPER="$(jq --raw-output --arg current "${CURRENT_WALLPAPER:-}" '
+    .wallpaper.synergy as $arr
+    | if ($arr | length) == 0 then null
+      else
+        ($arr | index($current)) as $idx
+        | if $idx == null then $arr[0]
+          else $arr[($idx + 1) % ($arr | length)]
+          end
+      end
+      ' "${THEME_DATA_PATH}")"
+  fi
+else
+  NEXT_WALLPAPER="${ARG}"
+
+  if [ ! -f "${DOTFILES}/wallpapers/${NEXT_WALLPAPER}" ]; then
+    echo "${NEXT_WALLPAPER} does not exist, aborting!" >&2
+    exit 1
+  fi
+fi
+
+[ "${NEXT_WALLPAPER}" = "null" ] && fallback
+
+ln -fns "${DOTFILES}/wallpapers/${NEXT_WALLPAPER}" "${WALLPAPER_PATH}"
+gsettings set org.gnome.desktop.background picture-uri "file:///${WALLPAPER_PATH}"
+gsettings set org.gnome.desktop.background picture-options 'zoom'
+
+# When booting up, we don't want to display this message.
+if [ -z "${ARG}" ]; then
+  notify "${NEXT_WALLPAPER}"
+fi

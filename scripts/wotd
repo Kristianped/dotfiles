@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Get the word of the day with its definition.
+
+DATA=$(download --silent https://www.merriam-webster.com/wotd/feed/rss2)
+WORD=$(sed -n 's|.*<title><!\[CDATA\[\(.*\)\]\]></title>.*|\1|p' <<<"${DATA}" | head -1)
+
+if [ -z "$WORD" ]; then
+  echo "Found no word of the day"
+  exit 1
+fi
+
+DEFINITION=$(sed -n 's|.*<merriam:shortdef><!\[CDATA\[\(.*\)\]\]></merriam:shortdef>.*|\1|p' <<<"${DATA}" | head -1)
+echo "$(date "+%F") :: ${WORD} :: ${DEFINITION} :: https://www.merriam-webster.com/dictionary/${WORD}"

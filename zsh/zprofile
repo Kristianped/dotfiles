@@ -1,0 +1,8 @@
+#/usr/bin/env zsh
+
+# Source zshcommon from dotfiles-folder
+DOTFILES=${DOTFILES:-$HOME/.dotfiles}
+[[ -f $DOTFILES/zsh/zshcommon ]] && source $DOTFILES/zsh/zshcommon
+
+# Add shims from Mise
+(( $+commands[mise] )) && eval "$(mise activate zsh --shims)"
