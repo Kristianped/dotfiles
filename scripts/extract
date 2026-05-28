@@ -28,7 +28,7 @@ _parse_args() {
   fi
 
   for i in "$@"; do
-    case $1 in
+    case $i in
       -h|--help)
         _usage
         exit 0
@@ -71,7 +71,8 @@ _extract_to_dir() {
   # If there's a file or directory with the same name as 'extract_dir_name'
   # add a random string to the end of the extract directory
   if [[ -e $extract_dir_name ]]; then
-    local rnd=$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 6)
+    local rnd
+    rnd=$(tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 6)
     extract_dir="${extract_dir_name}-${rnd}"
   else
     extract_dir="$extract_dir_name"

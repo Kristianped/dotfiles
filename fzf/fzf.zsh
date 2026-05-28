@@ -40,29 +40,29 @@ fi
 [[ -d "$FZF_CACHE_PATH" ]] || mkdir -p "$FZF_CACHE_PATH"
 
 export FZF_DEFAULT_OPTS="--history=$FZF_CACHE_PATH/fzf_history.txt
-  --height=80%
+  --height 80%
   --multi
-  --layout=reverse
+  --layout reverse
   $FZF_COLOR_SCHEME
-  --prompt='❯ '
-  --pointer=❯
-  --marker=✓
-  --preview='bat --color=always --highlight-line={2} {1} 2> /dev/null || less {1}'
-  --bind='tab:down'
-  --bind='btab:up'
-  --bind='ctrl-j:jump'
-  --bind='ctrl-k:kill-line'
-  --bind='ctrl-p:previous-history'
-  --bind='ctrl-n:next-history'
-  --bind='ctrl-q:clear-query'
-  --bind='ctrl-space:toggle'
-  --bind='ctrl-x:toggle-preview'
-  --bind='ctrl-w:preview-up'
-  --bind='ctrl-s:preview-down'
-  --bind='ctrl-a:preview-page-up'
-  --bind='ctrl-d:preview-page-down'
-  --bind='ctrl-e:change-preview-window(bottom|right)'
-  --bind='ctrl-r:change-preview-window(+{2}+3/3,~3|+{2}+3/3,~1|)'"
+  --prompt '❯ '
+  --pointer ❯
+  --marker ✓
+  --preview 'bat --color=always --highlight-line={2} {1} 2> /dev/null || less {1}'
+  --bind 'tab:down'
+  --bind 'btab:up'
+  --bind 'ctrl-j:jump'
+  --bind 'ctrl-k:kill-line'
+  --bind 'ctrl-p:previous-history'
+  --bind 'ctrl-n:next-history'
+  --bind 'ctrl-q:clear-query'
+  --bind 'ctrl-space:toggle'
+  --bind 'ctrl-x:toggle-preview'
+  --bind 'ctrl-w:preview-up'
+  --bind 'ctrl-s:preview-down'
+  --bind 'ctrl-a:preview-page-up'
+  --bind 'ctrl-d:preview-page-down'
+  --bind 'ctrl-e:change-preview-window(bottom|right)'
+  --bind 'ctrl-r:change-preview-window(50%|hidden|)'"
 export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
 
 
