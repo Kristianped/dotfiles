@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -o errexit
 set -o pipefail
@@ -9,9 +9,9 @@ extension1="otf"
 extension2="ttf"
 font_dir="$XDG_DATA_HOME/fonts/NerdFonts"
 
-mes_color "$light_green" "[-] Nerd Font Downloader [-]"
-mes_color "$light_green" "----------------------------"
-mes_color "$light_green" "[-]   Select Nerd Font   [-]"
+mes_color "$LIGHT_GREEN" "[-] Nerd Font Downloader [-]"
+mes_color "$LIGHT_GREEN" "----------------------------"
+mes_color "$LIGHT_GREEN" "[-]   Select Nerd Font   [-]"
 
 font_list=("0xProto" "3270" "AdwaitaMono" "Agave" "AnonymousPro" "Arimo" "AtkinsonHyperlegibleMono" "AurulentSansMono" "BigBlueTerminal" "BitstreamVeraSansMono" "CascadiaCode" "CascadiaMono" "CodeNewRoman" "ComicShannsMono" "CommitMono" "Cousine" "D2Coding" "DaddyTimeMono" "DejaVuSansMono" "DepartureMono" "DroidSansMono" "EnvyCodeR" "FantasqueSansMono" "FiraCode" "FiraMono" "GeistMono" "Go-Mono" "Gohu" "Hack" "Hasklig" "HeavyData" "Hermit" "iA-Writer" "IBMPlexMono" "Inconsolata" "InconsolataGo" "InconsolataLGC" "IntelOneMono" "Iosevka" "IosevkaTerm" "IosevkaTermSlab" "JetBrainsMono" "Lekton" "LiberationMono" "Lilex" "MartianMono" "Meslo" "Monaspace" "Monofur" "Monoid" "Mononoki" "MPlus" "NerdFontsSymbolsOnly" "Noto" "OpenDyslexic" "Overpass" "ProFont" "ProggyClean" "Recursive" "RobotoMono" "ShareTechMono" "SourceCodePro" "SpaceMono" "Terminus" "Tinos" "Ubuntu" "UbuntuMono" "UbuntuSans" "VictorMono" "ZedMono" "Quit")
 
@@ -20,13 +20,8 @@ extract_files() {
   dir=$1
   zip_file=$2
 
-  if cd "$dir" >/dev/null 2>&1; then
-    info "Extracting $zip_file"
-    extract -r "$zip_file"
-    cd - >/dev/null 2>&1 || error "Failed to extract"
-  else
-    error "Failed to extract file '$zip_file' in folder '$dir'"
-  fi
+  info "Extracting $zip_file"
+  do_action_in_dir "$dir" extract_file "$zip_file" || error "Failed to extract file '$zip_file' in folder '$dir'"
 }
 
 find_extension() {
@@ -66,6 +61,7 @@ select font_name in "${font_list[@]}"; do
 
   # Extract the zip-file inside the tmp-folder
   extract_files "$tmp_dir" "$downloaded_file"
+  rm -r "$downloaded_file"
 
   # Get the extension for font files; otf or ttf
   extension=$(find_extension "$tmp_dir")

@@ -1,0 +1,5 @@
+tmux_theme="Dracula"
+
+theme_options["@dracula-plugins"]="cpu-usage uptime weather"
+theme_options["@dracula-show-fahrenheit"]="false"
+theme_options["@dracula-fixed-location"]="Trondheim"

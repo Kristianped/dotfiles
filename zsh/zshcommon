@@ -34,7 +34,8 @@ export LANG="${LANG:-en_US.UTF-8}"
 # +-----+
 export ZDOTDIR=${ZDOTDIR:-$XDG_CONFIG_HOME/zsh}
 export ZSH_COMPDUMP=$XDG_CACHE_HOME/zsh/zcompdump
-export HISTFILE=$ZDOTDIR/.zhistory
+export HISTFILE=$XDG_CACHE_HOME/zsh/zsh_history
+export ZFUNCDIR=$DOTFILES/zsh/functions
 
 
 # +-----------+
@@ -63,6 +64,13 @@ path=(
 
 # Add XDG_MAN_HOME to manpath
 manpath=(
+  /usr/man
+  /usr/share/man
+  /usr/local/man
+  /usr/local/share/man
+  /usr/X11R6/man
+  /opt/man
+  /snap/man
   $XDG_MAN_HOME
   $manpath
 )

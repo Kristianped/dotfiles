@@ -1,4 +1,5 @@
 #compdef fzf
+#autoload
 
 _arguments \
          '*:file:_files' \

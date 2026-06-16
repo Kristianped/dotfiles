@@ -1,0 +1,106 @@
+#!/usr/bin/env bash
+
+set -o errexit
+set -o pipefail
+set -o nounset
+
+source "$DOTFILES/bootstrap"
+
+WALLPAPER_DIR=$XDG_CONFIG_HOME/wallpaper
+CURRENT_WALLPAPER=$WALLPAPER_DIR/current_wallpaper
+
+wallpaper_file=""
+keep_current=0
+mapfile -t all_wallpapers < <(find "$DOTFILES/wallpapers" -mindepth 1 -maxdepth 1 -type f -exec basename {} \; | sort)
+
+_usage() {
+  cat <<\EOF
+  Utility program to set the wallpaper. If no argument is provided a random wallpaper will be selected.
+
+  Usage: set_wallpaper [options...] <wallpaper>
+  -h, --help           - Shows this text
+  -l, --list           - List available wallpapers
+  -k, --keep-current   - Keep the current wallpaper
+  -f, --file=<file>    - Use a specific file as wallpaper
+EOF
+}
+
+_print_wallpapers() {
+  echo "${all_wallpapers[@]}" | tr ' ' '\n' | awk -v cyan="$(tput setaf 6)" -v reset="$(tput sgr0)" '{print cyan $1 reset}'
+}
+
+_pick_fzf() {
+  selected_file="echo {} | awk '{print \$1}' | xargs -I {} find \"$DOTFILES/wallpapers\" -type f -name '{}*'"
+  preview_file="${selected_file} | xargs -r fzf-preview"
+
+  _print_wallpapers | fzf --preview "${preview_file}" --no-multi --ansi
+}
+
+_pick_wallpaper() {
+  local current default_wallpaper new_wallpaper
+
+  # Use 'starry-night.jpg' as default
+  default_wallpaper="starry-night.jpg"
+
+  # get current wallpaper, if exist.
+  [[ -L $CURRENT_WALLPAPER ]] && current=$(basename "$(readlink -f "$CURRENT_WALLPAPER")")
+
+  # If option --keep-current, we return the current wallpaper
+  if is_true $keep_current; then
+    new_wallpaper=${current:-$default_wallpaper}
+  else
+    # Pick from 'dotfiles/wallpapers' with fzf
+    new_wallpaper=$(_pick_fzf)
+  fi
+
+  echo "$new_wallpaper"
+}
+
+_parse_args() {
+  for i in "$@"; do
+    case $i in
+      -h|--help)
+        _usage
+        exit 0 ;;
+      -l|--list)
+        _print_wallpapers
+        exit 0 ;;
+      -k|--keep-current)
+        keep_current=1
+        shift ;;
+      -f=*|--file=*)
+        wallpaper_file="${i#*=}"
+        keep_current=0
+        shift ;;
+      -*) error "Unknown option: '$1'" ;;
+      *) ;;
+    esac
+  done
+
+  # Explicit file provided
+  [[ -n $wallpaper_file ]] && return
+
+  if [ $# -eq 0 ]; then
+    local picked_wallpaper
+    picked_wallpaper=$(_pick_wallpaper)
+    [[ -z $picked_wallpaper ]] && return 1
+    wallpaper_file=$DOTFILES/wallpapers/$picked_wallpaper
+  else
+    wallpaper_file=$DOTFILES/wallpapers/$1
+  fi
+}
+
+_set_wallpaper() {
+  [[ ! -f $wallpaper_file ]] && error "Wallpaper '$wallpaper_file' not found, aborting!"
+
+  mkdir -p "$WALLPAPER_DIR"
+
+  ln -sf "$wallpaper_file" "$CURRENT_WALLPAPER"
+  gsettings set org.gnome.desktop.background picture-uri "file:///$CURRENT_WALLPAPER"
+  gsettings set org.gnome.desktop.background picture-options 'zoom'
+
+  info "'$wallpaper_file' is your new wallpaper"
+}
+
+_parse_args "$@"
+_set_wallpaper

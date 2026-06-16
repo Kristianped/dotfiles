@@ -1,4 +1,9 @@
 #
+# Autoload functions from ZFUNCDIR
+#
+mattmc3/zephyr path:plugins/zfunctions
+
+#
 # Completions
 #
 mattmc3/zephyr path:plugins/completion
@@ -12,6 +17,7 @@ mattmc3/ez-compinit path:functions kind:autoload post:compstyle-bind
 mattmc3/zephyr path:plugins/color
 mattmc3/zephyr path:plugins/directory
 mattmc3/zephyr path:plugins/history
+
 
 
 #

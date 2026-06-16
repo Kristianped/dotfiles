@@ -34,8 +34,7 @@ EOF
 # flags help protect against zombie connections while still allowing long
 # downloads on slower connections (avoiding --max-time).
 _curl() {
-  local url args
-  url="${1:-}"
+  local args
   args=(
     "--fail"
     "--location"
@@ -45,32 +44,31 @@ _curl() {
     "--speed-limit" "100"
     "--speed-time" "30"
   )
-  is_true $is_silent && args+=(--silent)
+  is_true $is_silent && args+=("--silent")
   args+=("${@}")
 
-  command curl "${args[@]}"
+  curl "${args[@]}"
 }
 
 _wget() {
-  local url args
-  url="${1:-}"
+  local args
   args=(
     "--timeout=10"
     "--read-timeout=10"
     "--tries=4"
     "--retry-connrefused"
   )
-  is_true $is_silent && args+=(--quiet)
+  is_true $is_silent && args+=("--quiet")
   args+=("${@}")
 
-  command wget "${args[@]}"
+  wget "${args[@]}"
 }
 
 _fetch() {
   if has_cmd curl; then
-    _curl "$1" -o "$2"
+    _curl -o "$2" "$1"
   elif has_cmd wget; then
-    _wget "$1" -O "$2"
+    _wget -O "$2" "$1"
   else
     error "Install curl or wget to download files"
     exit 1
@@ -79,9 +77,9 @@ _fetch() {
 
 _pipe() {
   if has_cmd curl; then
-    _curl "$1" --silent --show-error
+    _curl --silent --show-error "$1"
   elif has_cmd wget; then
-    _wget "$1" -nv -O-
+    _wget -nv -O- "$1"
   else
     error "Install curl or wget to download files"
     exit 1
@@ -111,7 +109,9 @@ _find_download_dir() {
     download_dir="$tmp_dir"
   else
     if [ -n "$download_dir" ]; then
-      if [ ! -d "$download_dir" ]; then
+      if [ "$download_dir" =  "." ]; then
+        download_dir="$CURRENT_DIR"
+      elif [ ! -d "$download_dir" ]; then
         download_dir="$default_download_dir"
       fi
     else
@@ -142,17 +142,20 @@ _parse_args() {
         ;;
       -f=*|--file=*)
         file_name="${i#*=}"
+        is_pipe=0
         shift
         ;;
       -d=*|--directory=*)
         download_dir="${i#*=}"
+        is_pipe=0
         shift
         ;;
       -t|--temp)
         is_temp=1
+        is_pipe=0
         shift
         ;;
-      -*|--*)
+      -*)
         error "Unknown option: '$1'"
         ;;
       *)

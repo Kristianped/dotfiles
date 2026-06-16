@@ -8,6 +8,7 @@ source "$DOTFILES/bootstrap"
 current_dir=$(pwd)
 remove_archive=0
 own_dir=0
+extract_dir_name=""
 files=()
 
 _usage() {
@@ -15,9 +16,10 @@ _usage() {
   Utility program to extract archives
 
   Usage: extract [options...] [file ...]
-  -h, --help        - Shows this text
-  -r, --remove      - Remove archive after unpacking.
-  -d, --directory   - Extract archive into its own directory
+  -h, --help                   - Shows this text
+  -r, --remove                 - Remove archive after unpacking.
+  -d, --directory              - Extract archive into its own directory(uses basename of archive to determine dir-name if option 'dn' is not used)
+  -dn, --dir-name=<directory>  - Directory to extract the archive into
 EOF
 }
 
@@ -41,7 +43,12 @@ _parse_args() {
         own_dir=1
         shift
         ;;
-      -*|--*)
+      -dn=*|--dir-name=*)
+        own_dir=1
+        extract_dir_name="${i#*=}"
+        shift
+        ;;
+      -*)
         error "Unknown option: '$1'"
         ;;
       *)
@@ -53,19 +60,22 @@ _parse_args() {
 }
 
 _extract_to_dir() {
-  local file full_path extract_dir_name extract_dir
+  local file full_path extract_dir
   file="$1"
 
   # Absolute path to the file
   full_path="$(readlink -f "$file" 2>/dev/null || echo "$file")"
 
-  # Get basename and remove extension
-  extract_dir_name="$(basename "$file")"
-  extract_dir_name="${extract_dir_name%.*}"
-
-  # Handle .tar extension
-  if [[ "$extract_dir_name" =~ \.tar$ ]]; then
+  # If option 'dn' is not used we get the name of the directory from basename
+  if [[ -z $extract_dir_name ]]; then
+    # Get basename and remove extension
+    extract_dir_name="$(basename "$file")"
     extract_dir_name="${extract_dir_name%.*}"
+
+    # Handle .tar extension
+    if [[ "$extract_dir_name" =~ \.tar$ ]]; then
+      extract_dir_name="${extract_dir_name%.*}"
+    fi
   fi
 
   # If there's a file or directory with the same name as 'extract_dir_name'
@@ -82,9 +92,10 @@ _extract_to_dir() {
   mkdir -p "$extract_dir"
 
   # Cd into the directory and extract archive
-  cd "$extract_dir" || return 1
-  extract_file "$full_path" || return 1
-  cd "$current_dir"
+  (
+    cd "$extract_dir"
+    extract_file "$full_path"
+  )
 
   # remove the archive-file if '-r' is provided
   is_true $remove_archive && rm -r "$full_path"

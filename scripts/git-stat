@@ -3,6 +3,6 @@
 # list files with stats which have changed since main/master/trunk
 
 review_base=$(git remote show origin | sed -n '/HEAD branch/s/.*: //p')
-merge_name=$(git merge-base HEAD $review_base)
+merge_name=$(git merge-base HEAD "$review_base")
 
-git diff --stat $merge_name
+git diff --stat "$merge_name"

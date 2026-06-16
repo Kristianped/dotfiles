@@ -11,24 +11,33 @@
 ##? For GitLab repos:
 ##? tglcompare|glcm, glcommits|glco, glhistory|glh, glbranches|glb, glmerges|glm, glissues|gli, glctrlp|glcr, glnetwork|gln, help
 
+IN_WSL=false
+if [ -n "$WSL_DISTRO_NAME" ]; then
+  IN_WSL=true
+elif [[ $(uname -a | grep -i 'Microsoft') ]]; then
+  IN_WSL=true
+fi
+
 __open() {
   if [ "$(uname -s)" = "Darwin" ]; then
     open "$1" 2> /dev/null
+  elif $IN_WSL; then
+    /mnt/c/Windows/System32/cmd.exe /c "start $(echo "$1" | sed "s~\([\(\)%\!^\"<>&|]\)~\^\1~g")" &> /dev/null
   else
     xdg-open "$1" &> /dev/null
   fi
 }
 
 __set_remote_branch() {
-    branch=$(git rev-parse --abbrev-ref --symbolic-full-name @{u} 2> /dev/null)
-    if [ $? -eq 0 ]; then
-        branch="${branch/origin\//}"
-    else
-        false
-    fi
+  branch=$(git rev-parse --abbrev-ref --symbolic-full-name @{u} 2> /dev/null)
+  if [ $? -eq 0 ]; then
+    branch="${branch/origin\//}"
+  else
+    false
+  fi
 }
 __set_local_branch() {
-    branch=$(git rev-parse --abbrev-ref HEAD)
+  branch=$(git rev-parse --abbrev-ref HEAD)
 }
 
 # check if local branch is tracked upstream;
@@ -143,13 +152,12 @@ _git_branches() {
   __open "$url/branches/$loc"
 }
 
-
 _git_open_pulls() {
   _git_set_repo
   shift
   if [ "$#" -eq 0 ]; then
     __open "$url/pulls"
-  elif [ $1 -ge 0 2>/dev/null ]; then
+  elif [ $1 -ge 0 ]; then
     __open "$url/pull/$1"
   else
     __open "$url/pulls?q=$@"
@@ -161,7 +169,7 @@ _git_open_issues() {
   shift
   if [ "$#" -eq 0 ]; then
     __open "$url/issues"
-  elif [ $1 -ge 0 2>/dev/null ]; then
+  elif [ $1 -ge 0 ]; then
     __open "$url/issues/$1"
   else
     __open "$url/issues?q=$@"
@@ -243,7 +251,7 @@ _gitlab_open_merges() {
   shift
   if [ "$#" -eq 0 ]; then
     __open "$url/merge_requests"
-  elif [ $1 -ge 0 2>/dev/null ]; then
+  elif [ $1 -ge 0 ]; then
     __open "$url/merge_requests/$1"
   else
     __open "$url/merge_requests?scope=all&utf8=✓&state=opened&search=$@"

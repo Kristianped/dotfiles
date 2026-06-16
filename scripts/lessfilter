@@ -1,4 +1,4 @@
-#! /usr/bin/env bash
+#!/usr/bin/env bash
 
 source "$DOTFILES/bootstrap"
 
@@ -79,8 +79,8 @@ elif [[ "$kind" == "rfc822" ]] && has_cmd bat; then
   bat --color=always -lEmail "$1"
 # https://github.com/wofr06/lesspipe/pull/106
 elif [[ "$category" == "image" ]]; then
-  (( image_shown )) && show_image "$1"
-  (( image_shown )) || file "$1"
+  is_true $image_shown && show_image "$1"
+  is_true $image_shown || file "$1"
 
   if has_cmd exiftool; then
 	exiftool "$1" | bat --color=always -plyaml

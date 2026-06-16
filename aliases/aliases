@@ -5,7 +5,6 @@ alias bigf='find / -xdev -type f -size +500M'  # display "big" files > 500M
 # +-----+
 # | X11 |
 # +-----+
-
 alias xclass='xprop | grep WM_CLASS' # display xprop class
 
 # +----+
@@ -27,7 +26,6 @@ alias wget='wget --hsts-file=$XDG_DATA_HOME/wget-hsts'
 # +----+
 # | cp |
 # +----+
-
 alias cp='cp -iv'
 alias mv='mv -iv'
 alias rm='rm -iv'
@@ -35,61 +33,65 @@ alias rm='rm -iv'
 # +------+
 # | grep |
 # +------+
-
 alias grep="grep -P -i --color=auto"
 
-# +------+
-# | xlip |
-# +------+
-
-alias cb='xclip -sel clip'
+# +--------+
+# | pbcopy |
+# +--------+
+if ! command -v pbcopy >/dev/null 2>&1; then
+  if [[ "$OSTYPE" == cygwin* ]]; then
+    alias pbcopy='tee > /dev/clipboard'
+    alias pbpaste='cat /dev/clipboard'
+  elif [[ "$OSTYPE" == linux-android ]]; then
+    alias pbcopy='termux-clipboard-set'
+    alias pbpaste='termux-clipboard-get'
+  elif command -v wl-copy >/dev/null 2>&1 && command -v wl-paste >/dev/null 2>&1; then
+    alias pbcopy='wl-copy'
+    alias pbpaste='wl-paste'
+  elif [[ -n $DISPLAY ]]; then
+    if command -v xclip >/dev/null 2>&1; then
+      alias pbcopy='xclip -selection clipboard -in'
+      alias pbpaste='xclip -selection clipboard -out'
+    elif command -v xsel >/dev/null 2>&1; then
+      alias pbcopy='xsel --clipboard --input'
+      alias pbpaste='xsel --clipboard --output'
+    fi
+  fi
+fi
 
 # +------+
 # | dust |
 # +------+
-
 alias dust='du -sh * | sort -hr'
 
 # +------+
 # | ping |
 # +------+
-
 alias pg='ping 8.8.8.8'
 
 # +------+
 # | time |
 # +------+
-
 alias time='/usr/bin/time'
 
 # +----+
 # | bc |
 # +----+
-
 alias calc="noglob calcul"
 
 # +-----+
 # | bat |
 # +-----+
-
 alias batl='bat --paging=never -l log'
-
-# +-------+
-# | fonts |
-# +-------+
-
-alias font-update='fc-cache -f -v'
 
 # +---------+
 # | netstat |
 # +---------+
-
 alias port="netstat -tulpn | grep"
 
 # +--------+
 # | Neovim |
 # +--------+
-
 alias vim='nvim'
 alias vi='nvim'
 alias svim='sudoedit'
@@ -103,15 +105,14 @@ alias lvim='\vim -c "set nowrap|syntax off"'        # fast vim for big files / b
 # +------+
 # | tmux |
 # +------+
-
 alias tmuxk='tmux kill-session -t'
 alias tmuxa='tmux attach -t'
 alias tmuxl='tmux list-sessions'
 
+
 # +-------+
 # | tmuxp |
 # +-------+
-
 alias mux='tmuxp load'
 
 # +--------+
@@ -139,6 +140,11 @@ alias work='cd $HOME/workspace'
 alias doc='cd $HOME/Documents'
 alias dow='cd $HOME/Downloads'
 alias dot='cd $HOME/.dotfiles'
+
+# print things
+alias print-fpath='echo $FPATH | tr ":" "\n"'
+alias print-path='echo $PATH | tr ":" "\n"'
+alias print-functions='print -l ${(k)functions[(I)[^_]*]} | sort'
 
 # +-------+
 # | maven |

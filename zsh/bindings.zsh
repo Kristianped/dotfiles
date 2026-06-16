@@ -17,7 +17,7 @@ function magic-enter-cmd {
     cmd="$MAGIC_ENTER_GIT_COMMAND"
   fi
 
-  echo $cmd
+  echo "$cmd"
 }
 
 function magic-enter {
@@ -68,12 +68,15 @@ bind2maps emacs viins -- magic-space Space
 # normal space during searches
 bind2maps isearch -- magic-space Space
 
+function package-install {
+  if (( $+commands[apt] )); then
+    fapt
+  elif (( $+commands[dnf] )); then
+    fdnf
+  fi
+}
+zle -N package-install
+bind2maps emacs viins -- package-install Ctrl+Alt+I
+
 # Flatpak install/uninstall
-if (( $+functions[flatpak-install] )); then
-  zle -N flatpak-install
-  bind2maps emacs -- flatpak-install Ctrl+Alt+I
-fi
-if (( $+functions[flatpak-uninstall] )); then
-  zle -N flatpak-uninstall
-  bind2maps emacs -- flatpak-uninstall Ctrl+Alt+U
-fi
+

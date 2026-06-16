@@ -1,16 +1,31 @@
-if ! command -v fzf; then
+#!/usr/bin/env zsh
+
+NC="\033[0m"
+BOLD="\033[1m"
+BLACK="\033[30m"
+RED="\033[0;31m"
+GREEN="\033[32m"
+YELLOW="\033[33m"
+BLUE="\033[34m"
+MAGENTA="\033[35m"
+CYAN="\033[36m"
+WHITE="\033[97m"
+
+if ! command -v fzf >/dev/null 2>&1; then
+  printf "%b%s%b\n" "$RED" "Fzf is not installed" "$NC"
   return 1
 fi
 
-# CLR=$(for i in {0..7}; do echo "tput setaf $i"; done)
-BLK=\$(tput setaf 0); RED=\$(tput setaf 1); GRN=\$(tput setaf 2); YLW=\$(tput setaf 3); BLU=\$(tput setaf 4);
-MGN=\$(tput setaf 5); CYN=\$(tput setaf 6); WHT=\$(tput setaf 7); BLD=\$(tput bold); RST=\$(tput sgr0);
+if ! command -v flatpak >/dev/null 2>&1; then
+  printf "%b%s%b\n" "$RED" "Flatpak is not installed" "$NC"
+  return 1
+fi
 
-AWK_VAR="awk -v BLK=${BLK} -v RED=${RED} -v GRN=${GRN} -v YLW=${YLW} -v BLU=${BLU} -v MGN=${MGN} -v CYN=${CYN} -v WHT=${WHT} -v BLD=${BLD} -v RST=${RST}"
+AWK_VAR="awk -v BLK=${BLACK} -v RED=${RED} -v GRN=${GREEN} -v YLW=${YELLOW} -v BLU=${BLUE} -v MGN=${MAGENTA} -v CYN=${CYAN} -v WHT=${WHITE} -v BLD=${BOLD} -v RST=${NC}"
 
 # Searches only from flathub repository
 flatpak remote-ls --user flathub --cached --columns=app,name,description \
-  | awk -v cyn=$(tput setaf 6) -v blu=$(tput setaf 4) -v bld=$(tput bold) -v res=$(tput sgr0) \
+  | awk -v cyn="${CYAN}" -v blu="${BLUE}" -v bld="${BOLD}" -v res="${NC}" \
   '{
     app_info="";
     for(i=2;i<=NF;i++){

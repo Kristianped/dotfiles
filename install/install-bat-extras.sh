@@ -12,12 +12,13 @@ wait
 
 # Symlink every executable inside bat_dir/bin into scripts_folder
 if [[ -d $bat_dir/bin ]]; then
-  ln -sf "$bat_dir/bin/*" "$XDG_BIN_HOME/"
+  ln -sf "$bat_dir"/bin/* "$XDG_BIN_HOME/"
 fi
 
 # Symlink every man-file inside bat_dir/man into man_folder
 if [[ -d $bat_dir/man ]]; then
   man_folder=$XDG_MAN_HOME/man1
   [[ -d $man_folder ]] || mkdir -p "$man_folder"
-  ln -sf "$bat_dir/man/*" "$man_folder/"
+  ln -sf "$bat_dir"/man/* "$man_folder/"
+  mandb -u -q
 fi

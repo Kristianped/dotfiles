@@ -55,5 +55,6 @@ _arguments \
   '(-h --help)'{-h,--help}'[Show help]' \
   '(-r --remove)'{-r,--remove}'[Remove archive]' \
   '(-d --directory)'{-d,--directory}'[Extract archive into its own directory]' \
+  '(-dn --dir-name)'{-dn=,--dir-name=}'[Specify directory name to extract to]:Specify directory' \
   "*::archive file:_files -g '(#i)*.(${(j:|:)exts})(-.)'" \
     && return 0

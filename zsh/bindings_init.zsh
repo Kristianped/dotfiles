@@ -158,8 +158,8 @@ function bind2maps {
   done
 
   for i in "${maps[@]}"; do
-    for seq in ${seqs[@]}; do
-      bindkey -M $i $seq $widget
+    for seq in "${seqs[@]}"; do
+      bindkey -M "$i" "$seq" "$widget"
     done
   done
 }

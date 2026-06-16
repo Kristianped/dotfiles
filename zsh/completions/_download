@@ -1,0 +1,11 @@
+#compdef download
+#autoload
+
+_arguments \
+  '(-h --help)'{-h,--help}'[Show help]' \
+  '(-s --silent)'{-s,--silent}'[Silent mode]' \
+  '(-o --output)'{-o,--output}'[Writes the output to a file]' \
+  '(-f --file)'{-f=,--file=}'[Specify the filename to write to]:name of file' \
+  '(-d --directory)'{-d=,--directory=}'[Specify the directory to write to]:directory:_directories' \
+  '(-t --temp)'{-t,--temp}'[Downloaded file will be save in tmp-folder]' \
+  '*:URL:_urls' && return 0

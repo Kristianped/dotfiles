@@ -1,0 +1,215 @@
+#!/usr/bin/env bash
+
+set -o errexit
+set -o pipefail
+set -o nounset
+
+source "$DOTFILES/bootstrap"
+
+theme=""
+gui_enabled=0
+switch_wallpaper=0
+mapfile -t all_themes < <(find "$DOTFILES/themes" -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | sort)
+
+_usage() {
+  cat <<\EOF
+  Utility program to set theme for various programs and the UI. If no argument is provided
+  a random theme will be selected.
+
+  Usage: set_theme [options...] <theme>
+  -h, --help       - Shows this text
+  -l, --list       - List available themes
+  -g, --gui        - Change theme for Gui applications
+  -w, --wallpaper  - Change the wallpaper as well
+EOF
+}
+
+_to_dconf() {
+    tr '\n' '~' | sed -e "s#~\$#']\n#" -e "s#~#', '#g" -e "s#^#['#"
+}
+
+_dlist_append() {
+  local key val entries
+
+  key="$1"
+  val="$2"
+
+  entries="$(
+    {
+      dconf read "$key" | tr -d '[]' | tr , "\n" | grep -F -v "$val"
+      echo "'$val'"
+    } | head -c-1 | tr "\n" ,
+    )"
+
+    dconf write "$key" "[$entries]"
+}
+
+_set_gnome_theme() {
+  local gnome_dir base_key profile_slug default_slug default_key profile_key
+  gnome_dir=$DOTFILES/themes/$theme/gnome
+  base_key=/org/gnome/terminal/legacy/profiles:
+  profile_slug=$(cat "$gnome_dir/slug")
+
+  has_cmd uuidgen && profile_slug=$(uuidgen)
+
+  if [[ -n "$(dconf read $base_key/default)" ]]; then
+    default_slug=$(dconf read $base_key/default | tr -d \')
+  else
+    default_slug=$(dconf list $base_key/ | grep '^:' | head -n1 | tr -d :/)
+  fi
+
+  default_key="$base_key/:$default_slug"
+  profile_key="$base_key/:$profile_slug"
+
+  # copy existing settings from default profile
+  dconf dump "$default_key/" | dconf load "$profile_key/"
+
+  # add new copy to list of profiles
+  _dlist_append "$base_key/list" "$profile_slug"
+
+  # Set profile name
+  dconf write "$profile_key/visible-name" "'$(cat "$gnome_dir/name")'"
+
+  # Set color palette
+  dconf write "$profile_key/palette" "$(_to_dconf < "$gnome_dir/palette")"
+
+  # Set foreground and foreground-color
+  dconf write "$profile_key/foreground-color" "'$(cat "$gnome_dir/fg")'"
+  dconf write "$profile_key/background-color" "'$(cat "$gnome_dir/bg")'"
+
+  # Set cursor color
+  dconf write "$profile_key/cursor-colors-set" "true"
+  dconf write "$profile_key/cursor-background-color" "'$(cat "$gnome_dir/cursor")'"
+  dconf write "$profile_key/cursor-foreground-color" "'$(cat "$gnome_dir/bg")'"
+
+  # Set highlighted color
+  dconf write "$profile_key/highlight-colors-set" "false"
+  dconf write "$profile_key/bold-color-same-as-fg" "true"
+  dconf write "$profile_key/bold-color" "'$(cat "$gnome_dir/fg")'"
+
+  # Set theme options
+  dconf write "$profile_key/use-theme-colors" "false"
+  dconf write "$profile_key/use-theme-background" "false"
+  dconf write "$profile_key/use-theme-transparency" "false"
+}
+
+_pick_random_theme() {
+  local active_theme_path current_theme new_theme
+  active_theme_path=$XDG_CONFIG_HOME/fzf/theme.sh
+
+  # Find the name of the current theme, if set
+  [[ -L $active_theme_path ]] && current_theme=$(basename "$(dirname "$(readlink -f "$active_theme_path")")")
+
+  # If current theme is not set, pick random theme from 'all_themes'
+  if [[ -z $current_theme ]]; then
+    new_theme=${all_themes[ $RANDOM % ${#all_themes[@]} ]}
+  else
+    # Remove 'current_theme' from 'all_themes' and pick random theme from new array
+    local theme_array=()
+    for item in "${all_themes[@]}"; do
+      [[ "$item" != "$current_theme" ]] && theme_array+=("$item")
+    done
+     new_theme=${theme_array[ $RANDOM % ${#theme_array[@]} ]}
+  fi
+
+  echo "$new_theme"
+}
+
+_parse_args() {
+  for i in "$@"; do
+    case $i in
+      -h|--help)
+        _usage
+        exit 0 ;;
+      -l|--list)
+        printf "%s\n" "${all_themes[@]}"
+        exit 0 ;;
+      -g|--gui)
+        gui_enabled=1
+        shift ;;
+      -w|--wallpaper)
+        switch_wallpaper=1
+        shift ;;
+      -*) error "Unknown option: '$1'" ;;
+      *) ;;
+    esac
+  done
+
+  if [ $# -eq 0 ]; then
+    theme=$(_pick_random_theme)
+  else
+    theme="$1"
+  fi
+}
+
+_symlink() {
+  local from_file to_file
+  from_file=$DOTFILES/themes/$theme/$1
+  to_file=$XDG_CONFIG_HOME/$2
+
+  ln -sf "$from_file" "$to_file"
+}
+
+_set_theme() {
+  local gtk_theme_path gtk_theme_settings_path
+
+  [[ ! -d $DOTFILES/themes/$theme ]] && error "Theme '$theme' not found, aborting!"
+
+  info "Creating directories and symlinks for $theme"
+  mkdir -p \
+    "$XDG_CONFIG_HOME/btop/themes" \
+    "$XDG_CONFIG_HOME/eza" \
+    "$XDG_CONFIG_HOME/fzf" \
+    "$XDG_CONFIG_HOME/ghostty" \
+    "$XDG_CONFIG_HOME/kitty" \
+    "$XDG_CONFIG_HOME/nvim/lua/plugins" \
+    "$XDG_CONFIG_HOME/tmux"
+
+  _symlink "btop.theme" "btop/themes/theme.theme"
+  _symlink "eza.yml" "eza/theme.yaml"
+  _symlink "fzf.sh" "fzf/theme.sh"
+  _symlink "ghostty" "ghostty/theme"
+  _symlink "kitty.conf" "kitty/current_theme.conf"
+  _symlink "nvim.lua" "nvim/lua/plugins/theme.lua"
+  _symlink "tmux" "tmux/theme"
+
+  # Load profile for gnome terminal
+  has_cmd dconf && _set_gnome_theme
+
+  if is_true $gui_enabled; then
+    mkdir -p "$XDG_CONFIG_HOME/zathura"
+    _symlink "zathurarc" "zathura/themerc"
+
+    gtk_theme_path=$XDG_DATA_HOME/themes/$theme
+
+    if [[ -d $gtk_theme_path ]]; then
+      ln -sf "$gtk_theme_path/gtk-4.0/assets" "$XDG_CONFIG_HOME/gtk-4.0/assets"
+      ln -sf "$gtk_theme_path/gtk-4.0/gtk.css" "$XDG_CONFIG_HOME/gtk-4.0/gtk.css"
+
+      gtk_theme_settings_path=$DOTFILES/themes/$theme/gtk.ini
+
+      if [[ -f $gtk_theme_settings_path ]]; then
+        ln -sf "$gtk_theme_settings_path" "$XDG_CONFIG_HOME/gtk-3.0/settings.ini"
+        ln -sf "$gtk_theme_settings_path" "$XDG_CONFIG_HOME/gtk-4.0/settings.ini"
+      fi
+
+      # This command works as a source of truth for GTK-3 and GTK-4 apps.
+      # Given niri highly suggests installing xdg-desktop-portal-gnome, this
+      # comes with glib2 which provides gsettings.
+      #
+      # Even after symlinking settings.ini, gsettings still needs to run to
+      # switch the active theme so it takes effect.
+      gsettings set org.gnome.desktop.interface gtk-theme "$theme"
+
+      # Change icon-theme
+      gsettings set org.gnome.desktop.interface icon-theme "$theme"
+    fi
+
+      is_true $switch_wallpaper && set_wallpaper
+  fi
+
+  info "'$theme' is your active theme"
+}
+
+_parse_args "$@"
+_set_theme

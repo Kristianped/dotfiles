@@ -1,9 +1,20 @@
 #!/usr/bin/env bash
-source "$DOTFILES/bootstrap"
-readonly basename="$(basename "$0")"
+source "$DOTFILES/colors"
 
-has_cmd fzf || error "Fzf is not installed"
-has_cmd dnf || error "Dnf is not installed"
+set -o errexit
+set -o pipefail
+
+script_name=$(basename "$0")
+readonly script_name
+
+if ! command -v fzf >/dev/null 2>&1; then
+  printf "%b%s%b\n" "$RED" "Fzf is not installed" "$NC"
+  exit 64
+fi
+if ! command -v dnf >/dev/null 2>&1; then
+  printf "%b%s%b\n" "$RED" "Dnf is not installed" "$NC"
+  exit 64
+fi
 
 #Colors
 declare -r esc=$'\033'
@@ -13,31 +24,31 @@ declare -r GREEN="${esc}[32m"
 declare -r YELLOW="${esc}[33m"
 declare -r CYAN="${esc}[36m"
 # Base commands
-readonly QRY="dnf --cacheonly --quiet repoquery "
-readonly PRVW="dnf --cacheonly --quiet --color=always info"
-readonly QRY_PRFX='  '
-readonly QRY_SFFX=' > '
+declare -r QRY="dnf --cacheonly --quiet repoquery "
+declare -r PRVW="dnf --cacheonly --quiet --color=always info"
+declare -r QRY_PRFX='  '
+declare -r QRY_SFFX=' > '
 # Install mode
-readonly INS_QRYS="${QRY} --qf '${CYAN}%{name}'"
-readonly INS_PRVW="${PRVW}"
-readonly INS_PRMPT="${CYAN}${QRY_PRFX}Install packages${QRY_SFFX}"
+declare -r INS_QRYS="${QRY} --qf '${CYAN}%{name}'"
+declare -r INS_PRVW="${PRVW}"
+declare -r INS_PRMPT="${CYAN}${QRY_PRFX}Install packages${QRY_SFFX}"
 # Remove mode
-readonly RMV_QRYS="${QRY} --installed --qf '${RED}%{name}'"
-readonly RMV_PRVW="${PRVW} --installed"
-readonly RMV_PRMPT="${RED}${QRY_PRFX}Remove packages${QRY_SFFX}"
+declare -r RMV_QRYS="${QRY} --installed --qf '${RED}%{name}'"
+declare -r RMV_PRVW="${PRVW} --installed"
+declare -r RMV_PRMPT="${RED}${QRY_PRFX}Remove packages${QRY_SFFX}"
 # Remove-userinstalled mode
-readonly RUI_QRYS="${QRY} --userinstalled --qf '${YELLOW}%{name}'"
-readonly RUI_PRVW="${PRVW} --installed"
-readonly RUI_PRMPT="${YELLOW}${QRY_PRFX}Remove User-Installed${QRY_SFFX}"
+declare -r RUI_QRYS="${QRY} --userinstalled --qf '${YELLOW}%{name}'"
+declare -r RUI_PRVW="${PRVW} --installed"
+declare -r RUI_PRMPT="${YELLOW}${QRY_PRFX}Remove User-Installed${QRY_SFFX}"
 # Updates mode
-readonly UPD_QRY="${QRY} --upgrades --qf '${GREEN}%{name}'"
-readonly UPD_QRYS="if [[ $(${UPD_QRY} | wc -c) -ne 0 ]]; then ${UPD_QRY}; else echo ${GREEN}No updates available.; echo Try refreshing metadata cache...; fi"
-readonly UPD_PRVW="${PRVW}"
-readonly UPD_PRMPT="${GREEN}${QRY_PRFX}Upgrade packages${QRY_SFFX}"
+declare -r UPD_QRY="${QRY} --upgrades --qf '${GREEN}%{name}'"
+declare -r UPD_QRYS="if [[ $(${UPD_QRY} | wc -c) -ne 0 ]]; then ${UPD_QRY}; else echo ${GREEN}No updates available.; echo Try refreshing metadata cache...; fi"
+declare -r UPD_PRVW="${PRVW}"
+declare -r UPD_PRMPT="${GREEN}${QRY_PRFX}Upgrade packages${QRY_SFFX}"
 
 mapfile -d '' fhelp <<-EOF
 
-        "${basename}"
+        "${script_name}"
         Interactive package manager for Fedora
 
         Alt-i       Install mode (default)
@@ -56,15 +67,15 @@ mapfile -d '' fhelp <<-EOF
 EOF
 
 declare tmp_file
-if tmp_file="$(mktemp --tmpdir "${basename}".XXXXXX)"; then
+if tmp_file="$(mktemp --tmpdir "${script_name}".XXXXXX)"; then
   printf 'in' > "${tmp_file}" &&
   SHELL='/bin/bash' \
   FZF_DEFAULT_COMMAND="${INS_QRYS}" \
   fzf \
     --ansi \
 	--multi \
-	--query=$* \
-	--header=" ${basename} | Press Alt+h for help or ESC to quit" \
+	--query="$*" \
+	--header=" ${script_name} | Press Alt+h for help or ESC to quit" \
 	--header-first \
 	--prompt="${INS_PRMPT}" \
 	--marker=' ' \

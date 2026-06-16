@@ -2,14 +2,17 @@
 
 source "$DOTFILES/bootstrap"
 
-completions_folder="$DOTFILES/zsh/completions"
-[[ -d $completions_folder ]] && mkdir -p "$completions_folder"
+completions_folder="$ZDOTDIR/completions"
+make_dir "$completions_folder"
 
 # Dotnet
 has_cmd dotnet && dotnet completions script zsh >| "$completions_folder/_dotnet"
 
 # Eza
 has_cmd eza && download "https://raw.githubusercontent.com/eza-community/eza/main/completions/zsh/_eza" >| "$completions_folder/_eza"
+
+# Helm
+has_cmd helm && helm completion zsh >| "$completions_folder/_helm"
 
 # Kerl
 has_cmd kerl && download "https://raw.githubusercontent.com/kerl/kerl/master/zsh_completion/_kerl" >| "$completions_folder/_kerl"

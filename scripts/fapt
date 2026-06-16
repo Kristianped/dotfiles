@@ -1,0 +1,183 @@
+#!/usr/bin/env bash
+source "$DOTFILES/colors"
+
+set -o errexit
+set -o pipefail
+
+script_name=$(basename "$0")
+readonly script_name
+
+if ! command -v fzf >/dev/null 2>&1; then
+  printf "%b%s%b\n" "$RED" "Fzf is not installed" "$NC"
+  exit 64
+fi
+if ! command -v apt >/dev/null 2>&1; then
+  printf "%b%s%b\n" "$RED" "Apt is not installed" "$NC"
+  exit 64
+fi
+
+# Preview command
+preview_fun() {
+  local pkg_name
+  pkg_name=$(echo "$1" | awk '{print $1}')
+
+  apt-cache show "$pkg_name" | awk -v ylw="$(tput setaf 3)" -v wht="$(tput setaf 7)" -v bold="$(tput bold)" -v reset="$(tput sgr0)" \
+    '
+      {
+        if (match($0, ":") && substr($0, 0, 1) != " ") {
+          print ylw bold substr($0, 0, RSTART - 1) reset wht substr($0, RSTART) reset
+        } else {
+          print wht $0 reset
+        }
+      }
+    '
+}
+export -f preview_fun
+
+# Install mode
+ins_query() {
+  apt-cache search '' | sort \
+    | awk -v cyan="$(tput setaf 6)" -v blue="$(tput setaf 4)" -v bold="$(tput bold)" -v reset="$(tput sgr0)" \
+      '
+      {
+        info="";
+        for(i=2;i<=NF;i++) {
+          info=info" "$i
+        }
+        print blue bold $1" " reset cyan info reset
+      }
+      '
+}
+export -f ins_query
+ins_prompt=$(printf "%b%s%b" "$GREEN" "Install packages: " "$NC")
+
+# Remove mode
+rem_query() {
+  dpkg-query -W -f='${binary:Package} ${Installed-Size} ${db:Status-Abbrev} ${Version}\n' | sort \
+    | awk -v cyan="$(tput setaf 6)" -v blue="$(tput setaf 4)" -v bold="$(tput bold)" -v reset="$(tput sgr0)" \
+      '
+      function convert(value) {
+        split("B kB MB GB TB PB EB ZB YB", suffixes);
+        n = 1;
+        while(value >= 1000 && n < 9) {
+          value /= 1000;
+          n++;
+        }
+        return sprintf("%.2f %s", value, suffixes[n]);
+      }
+      {
+        value_in_bytes = $2 * 1000;
+        if ( $3 != "rc" ) print blue bold $1 reset cyan" - "$4" ("convert(value_in_bytes)")" reset
+      }'
+}
+export -f rem_query
+rem_prompt=$(printf "%b%s%b" "$YELLOW" "Remove package: " "$NC")
+
+# Purge mode
+pur_prompt=$(printf "%b%s%b" "$RED" "Purge package: " "$NC")
+
+# Update mode
+upd_query() {
+  local pkg_count
+  pkg_count=$(apt list --upgradable -qq 2>/dev/null | wc -l)
+
+  if [[ $pkg_count -eq 0 ]]; then
+    echo "No updates available"
+  else
+    apt list --upgradable -qq 2>/dev/null | cut -d '/' -f 1- --output-delimiter ' ' | cut -d ' ' -f 1,3,5- | sort \
+      | awk -v cyan="$(tput setaf 6)" -v blue="$(tput setaf 4)" -v bold="$(tput bold)" -v reset="$(tput sgr0)" \
+        '
+        {
+          info="";
+          for(i=2;i<=NF;i++) {
+            info=info" "$i
+          }
+          print blue bold $1" -" reset cyan info reset
+        }'
+  fi
+}
+export -f upd_query
+upd_prompt=$(printf "%b%s%b" "$MAGENTA" "Update package: " "$NC")
+
+
+# Reload after an action
+reload_query() {
+  local tmp_file mode
+  tmp_file="$1"
+  mode=$(cat "$tmp_file")
+
+  case $mode in
+    in) ins_query ;;
+    rm|pr) rem_query ;;
+    up) upd_query ;;
+  esac
+}
+export -f reload_query
+
+# Execute
+execute_query() {
+  local tmp_file mode pkg_name
+  tmp_file="$1"
+  mode=$(cat "$tmp_file")
+  pkg_name=$(echo "$2" | awk '{print $1}')
+
+  case $mode in
+    in) sudo apt -y install "$pkg_name" ;;
+    rm) sudo apt -y remove "$pkg_name" ;;
+    pr) sudo apt -y purge "$pkg_name" ;;
+    up)
+      [[ $2 = "No updates available" ]] && return
+      sudo apt -y upgrade "$pkg_name"
+      ;;
+    *) read -s -r -n1 -p $'\nPress any key to continue...' && printf '\n' ;;
+  esac
+}
+export -f execute_query
+
+mapfile -d '' fhelp <<-EOF
+
+        "${script_name}"
+        Interactive package manager for Ubuntu
+
+        Alt-i       Install mode (default)
+        Alt-r       Remove mode
+        Alt+p       Remove mode (purge)
+        Alt-u       Updates mode
+        Alt-m       Update package metadata cache
+        Alt+a       Remove unused dependencies
+
+        Enter       Confirm
+        Alt+h       Help (this page)
+        ESC         Quit
+EOF
+
+declare tmp_file
+if tmp_file="$(mktemp --tmpdir "$script_name".XXXXXX)"; then
+
+  printf 'in' > "$tmp_file" && ins_query | SHELL='/bin/bash' fzf \
+    --query "${*:-}" \
+    --ansi \
+    --cycle \
+    --reverse \
+    --marker ' ' \
+    --header " $script_name | Press Alt+h for help or ESC to quit" \
+    --header-first \
+    --prompt "$ins_prompt" \
+    --preview "bash -c 'preview_fun {1}'" \
+    --bind "alt-h:preview(printf \"${fhelp[0]}\")" \
+    --bind "alt-m:execute(sudo apt -y update;read -s -r -n1 -p $'\nPress any key to continue...' && printf '\n')+reload(bash -c 'reload_query \"${tmp_file}\"')" \
+    --bind "alt-a:execute(sudo apt -y autoremove;read -s -r -n1 -p $'\nPress any key to continue...' && printf '\n')+reload(bash -c 'reload_query \"${tmp_file}\"')" \
+    --bind "alt-i:unbind(alt-i)+reload(bash -c ins_query)+change-prompt($ins_prompt)+execute-silent(printf 'in' > \"${tmp_file}\")+first+rebind(alt-r,alt-p,alt-u)" \
+    --bind "alt-r:unbind(alt-r)+reload(bash -c rem_query)+change-prompt($rem_prompt)+execute-silent(printf 'rm' > \"${tmp_file}\")+first+rebind(alt-i,alt-p,alt-u)" \
+    --bind "alt-p:unbind(alt-p)+reload(bash -c rem_query)+change-prompt($pur_prompt)+execute-silent(printf 'pr' > \"${tmp_file}\")+first+rebind(alt-i,alt-r,alt-u)" \
+    --bind "alt-u:unbind(alt-u)+reload(bash -c upd_query)+change-prompt($upd_prompt)+execute-silent(printf 'up' > \"${tmp_file}\")+first+rebind(alt-i,alt-r,alt-p)" \
+    --bind "enter:execute(bash -c 'execute_query \"${tmp_file}\" {1}')+reload(bash -c 'reload_query \"${tmp_file}\"')"
+
+  rm -f "${tmp_file}" &> /dev/null
+else
+  printf "%b%s%b\n" "$RED" "Failed to create tmp file. $TMPDIR (or /tmp if $TMPDIR is unset) may not be writable." "$NC"
+  exit 65
+fi
+
+
+

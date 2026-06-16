@@ -2,20 +2,39 @@
 
 # Search and find directories in the dir stack
 fpop() {
-  dirs -v \
-    | fzf \
-      --query="$1" \
-      --ansi \
-      --header="Press ENTER to go to selected directory" \
-      --preview 'path={2}; path="${path/#\~/$HOME}"; /bin/ls -la $path' \
-    | cut -f 1 | source /dev/stdin
+  eza_options="-la --no-time --no-filesize --no-permissions --no-user --group-directories-first --color=always --icons=auto"
+  dirs -v | fzf \
+    --query="$1" \
+    --ansi \
+    --header="Press ENTER to go to selected directory" \
+    --preview "echo {2} | expand_tilde | xargs -r eza $eza_options" \
+  | cut -f 1 | source /dev/stdin
 }
 
 # cdf - cd into the directory of the selected file
 fcd() {
   local file
   local dir
-  file=$(fzf +m -q "$1") && dir=$(dirname "$file") && cd "$dir"
+
+  file=$(fzf +m -q "$1")
+  dir=$(dirname "$file")
+  cd "$dir" || return 1
+}
+
+fexec() {
+  local dir="${1:-$PWD}"
+
+  if [[ ! -d $dir ]]; then
+    printf "%b%s%b\n" "\033[0;31m" "'$dir' is not a directory" "\033[0m"
+    return 1
+  fi
+
+  fd --color=always --follow -t x . "$dir" | fzf \
+    --ansi \
+    --delimiter : \
+    --header="Press enter to execute" \
+    --preview "bat --color=always {}" \
+    --bind "enter:become(echo \"Executing file: {}\"; {})"
 }
 
 # List install files for dotfiles
@@ -34,20 +53,30 @@ fkill() {
       --header="Press CTRL-R to reload and ENTER to kill a process" \
       --header-lines=2 \
       --preview="ps q {1} lww " \
-      --bind="ctrl-r:reload(date; ps -u "$USER" -o pid:12,comm:20,euser:20)" \
-      --bind="enter:execute(kill -9 {1})+reload(date; ps -u "$USER" -o pid:12,comm:20,euser:20)"
+      --bind="ctrl-r:reload(date; ps -u $USER -o pid:12,comm:20,euser:20)" \
+      --bind="enter:execute(kill -9 {1})+reload(date; ps -u $USER -o pid:12,comm:20,euser:20)"
 }
 
 # Search through all man pages
 fman() {
-  man -k . | sort | uniq \
-    | fzf \
-      --query="$1" \
+  manpage="echo {} | awk '{print \$1}'"
+  batman="${manpage} | xargs -r man | col -bx | bat --language=man --plain --color always --theme=\"Monokai Extended\""
+  man -k . | sort \
+   | awk -v cyan="$(tput setaf 6)" -v blue="$(tput setaf 4)" -v bold="$(tput bold)" -v reset="$(tput sgr0)" \
+    '{
+       info="";
+       for(i=2;i<=NF;i++) {
+         info=cyan info" "$i
+       }
+       print blue bold $1" -" reset info
+    }' \
+   | fzf  \
+      --query "$1" \
       --ansi \
-      --prompt=" Man > " \
-      --header="Press enter to view" \
-      --preview="echo {} | awk '{print $1}' | xargs -r batman" \
-      --bind="enter:become(echo {} | awk '{print \$1}' | xargs -r man)"
+      --tiebreak=begin \
+      --prompt=' Man > '  \
+      --preview "${batman}" \
+      --bind "enter:become(${manpage} | xargs -r man)"
 }
 
 # Search for text in files using Ripgrep
@@ -61,5 +90,5 @@ fif() {
     --delimiter : \
     --preview "bat --color=always {1} --highlight-line {2}" \
     --preview-window "up,60%,border-bottom,+{2}+3/3,~3" \
-    --bind "enter:become(flatpak run org.kde.kate -l {2} {1})"
+    --bind "enter:become(nvim {1} +{2})"
 }

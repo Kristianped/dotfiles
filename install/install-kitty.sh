@@ -45,32 +45,34 @@ _configure_kitty() {
 
   # Create symlinks
   mkdir -p "$XDG_CONFIG_HOME/kitty"
-  ln -sf $kitty_home/bin/* $XDG_BIN_HOME/
-  ln -sf $DOTFILES/kitty/kitty.conf $XDG_CONFIG_HOME/kitty/kitty.conf
+  ln -sf "$kitty_home"/bin/* "$XDG_BIN_HOME/"
+  ln -sf "$DOTFILES/kitty/kitty.conf" "$XDG_CONFIG_HOME/kitty/kitty.conf"
 
   if [ -L "$theme_file" ] && [ ! -e "$theme_file" ]; then
     # If theme_file is a symlink, we overwrite it only if broken
-    ln -sf $DOTFILES/kitty/default_color.conf $theme_file
+    ln -sf "$DOTFILES/kitty/default_color.conf" "$theme_file"
   fi
 
   # Place the kitty.desktop file somewhere it can be found by the OS
-  cp $kitty_home/share/applications/kitty.desktop $applications_home/kitty.desktop
+  cp "$kitty_home/share/applications/kitty.desktop" "$applications_home/kitty.desktop"
 
   # Update the paths to the kitty and its icon in the kitty desktop file(s)
-  sed -i "s|Icon=kitty|Icon=$kitty_home/share/icons/hicolor/256x256/apps/kitty.png|g" $applications_home/kitty*.desktop
-  sed -i "s|Exec=kitty|Exec=$kitty_home/bin/kitty|g" $applications_home/kitty*.desktop
+  sed -i "s|Icon=kitty|Icon=$kitty_home/share/icons/hicolor/256x256/apps/kitty.png|g" "$applications_home"/kitty*.desktop
+  sed -i "s|Exec=kitty|Exec=$kitty_home/bin/kitty|g" "$applications_home"/kitty*.desktop
 
   # Make xdg-terminal-exec (and hence desktop environments that support it use kitty)
   if [[ -f $terminal_file ]]; then
-    grep -qxF "kitty.desktop" $terminal_file || echo "kitty.desktop" >> $terminal_file
+    grep -qxF "kitty.desktop" "$terminal_file" || echo "kitty.desktop" >> "$terminal_file"
   else
-    echo "kitty.desktop" >| $terminal_file
+    echo "kitty.desktop" >| "$terminal_file"
   fi
+
+  mandb -u -q
 }
 
 _check_kitty
 
-if [ ! -n "$kitty_error" ]; then
+if [ -z "$kitty_error" ]; then
   _install_kitty
   wait
   _configure_kitty

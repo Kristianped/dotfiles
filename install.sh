@@ -1,5 +1,8 @@
 #!/usr/bin/env zsh
 
+set -o errexit
+set -o pipefail
+
 ############
 # includes #
 ############
@@ -14,11 +17,11 @@ source "$script_dir/zsh/zshenv"
 ################
 
 skull=$(<"$script_dir/skull.txt")
-mes_color "$magenta" "$skull"
+mes_color "$MAGENTA" "$skull"
 echo
-mes_color "$yellow" "!!! WARNING !!!"
-mes_color "$light_red" "This script will delete all your configuration files!"
-mes_color "$light_red" "Use it at your own risks."
+mes_color "$YELLOW" "!!! WARNING !!!"
+mes_color "$LIGHT_RED" "This script will delete all your configuration files!"
+mes_color "$LIGHT_RED" "Use it at your own risks."
 
 if ! prompt_ask; then
   exit 0
@@ -30,12 +33,14 @@ fi
 
 # Install scripts
 dot_install scripts
-has_cmd bat && dot_install bat-extras
-dot_install lesspipe
-dot_install fzf
 
 # Install Mise
 dot_install mise
+
+# Install bat-extras, lesspipe and fzf
+has_cmd bat && dot_install bat-extras
+dot_install lesspipe
+dot_install fzf
 
 # Install Kitty
 dot_install kitty
@@ -49,6 +54,9 @@ dot_install zsh
 
 # Install nvim
 dot_install nvim
+
+# Install man-pages
+dot_install man
 
 # Install other stuff
 has_cmd git && dot_install git

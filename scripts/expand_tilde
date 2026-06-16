@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+source "$DOTFILES/bootstrap"
+
+input=""
+
+if [ $# -ge 1 ]; then
+  input="$1"
+else
+  if [ ! -t 0 ]; then
+    input=$(cat)
+  else
+    error "Provide input via argument (e.g., expand_tilde 'text') or pipe (e.g., echo 'text' | expand_tilde)."
+  fi
+fi
+
+[[ -z $input ]] && return 1
+
+expanded_path="${input/#\~/$HOME}"
+echo "$expanded_path"

@@ -1,18 +1,4 @@
-export FZF_THEME="\
-  --color=bg+:#2d3f76 \
-  --color=bg:#1e2030 \
-  --color=border:#589ed7 \
-  --color=fg:#c8d3f5 \
-  --color=gutter:#1e2030 \
-  --color=header:#ff966c \
-  --color=hl+:#65bcff \
-  --color=hl:#65bcff \
-  --color=info:#545c7e \
-  --color=marker:#ff007c \
-  --color=pointer:#ff007c \
-  --color=prompt:#65bcff \
-  --color=query:#c8d3f5:regular \
-  --color=scrollbar:#589ed7 \
-  --color=separator:#ff966c \
-  --color=spinner:#ff007c \
-"
+export FZF_COLOR_SCHEME="--color=fg:#c8d3f5,bg:#1e2030,hl:#65bcff
+--color=fg+:#c8d3f5,bg+:#2d3f76,hl+:#65bcff
+--color=info:#545c7e,prompt:#65bcff,pointer:#ff007c
+--color=marker:#ff007c,spinner:#ff007c,header:#ff966c"

@@ -1,0 +1,3 @@
+tmux_theme="TokyoNight"
+
+theme_options["@tokyo-night-tmux_theme"]="storm"

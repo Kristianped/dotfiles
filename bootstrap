@@ -1,12 +1,19 @@
 #!/usr/bin/env bash
 
 # Source colors
-script_dir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+if [[ -n "${ZSH_VERSION:-}" ]]; then
+  script_dir=${0:a:h}
+else
+  script_dir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+fi
+
 source "$script_dir/colors"
 
 function prompt_ask {
   while true; do
-    read -p 'Do you wish to continue? (y/n): ' answer
+    printf >&2 '%s ' 'Do you wish to continue? (y/n): '
+    read answer
+
     if [[ $answer = [YyNn] ]]; then
       [[ $answer = [Yy] ]] && ret_val=0
       [[ $answer = [Nn] ]] && ret_val=1
@@ -25,6 +32,12 @@ has_cmd() {
   done
 }
 
+make_dir() {
+  for dir in "$@"; do
+    [[ ! -d $dir ]] && mkdir -p "$dir"
+  done
+}
+
 # Check whether a string represents "true" (1, y, yes, t, true, o, on).
 is_true() {
   local val
@@ -39,56 +52,134 @@ is_true() {
   esac
 }
 
+do_action_in_dir() {
+  local dir ret_val
+  dir="$1"
+  ret_val=0
+  shift
+
+  if cd "$dir" >/dev/null 2>&1; then
+    if ! "$@"; then
+      ret_val=1
+    fi
+
+    cd - >/dev/null 2>&1 || ret_val=1
+  else
+    ret_val=1
+  fi
+
+  return $ret_val
+}
+
 remove_broken_symlinks() {
   find "$1" -maxdepth 1 -xtype l -delete
 }
 
 extract_file() {
-  local ret_val=0
-  [[ -f "$1" ]] || error "'$1' is not a valid file"
+  local ret_val file file_lower full_path stripped_name
+  ret_val=0
+  file="$1"
+  file_lower=$(echo "$file" | tr '[:upper:]' '[:lower:]')
+  full_path="$(readlink -f "$file" 2>/dev/null || echo "$file")"
 
-  case $1 in
-    (*.tar.gz|*.tgz) tar zxvf "$1" ;;
-    (*.tar.bz2|*.tbz|*.tbz2) tar xvjf "$1" ;;
-    (*.tar.xz|*.txz) tar --xz --help &> /dev/null && tar --xz -xvf "$1" || xzcat "$1" | tar xvf - ;;
-    (*.tar.zma|*.tlz) tar --lzma --help &> /dev/null && tar --lzma -xvf "$1" || lzcat "$1" | tar xvf - ;;
-    (*.tar.zst|*.tzst) tar --zstd --help &> /dev/null && tar --zstd -xvf "$1" || zstdcat "$1" | tar xvf - ;;
-    (*.tar) tar xvf "$1" ;;
-    (*.tar.lz) tar xvf "$1" ;;
-    (*.tar.lz4) lz4 -c -d "$1" | tar xvf - ;;
-    (*.tar.lrz) lrzuntar "$1" ;;
-    (*.gz) gunzip -ck "$1" > "${1:t:r}" ;;
-    (*.bz2) bunzip2 "$1" ;;
-    (*.xz) unxz "$1" ;;
-    (*.lrz) lrunzip "$1" ;;
-    (*.lz4) lz4 -d "$1" ;;
-    (*.lzma) unlzma "$1" ;;
-    (*.z) uncompress "$1" ;;
-    (*.zip|*.war|*.jar|*.ear|*.sublime-package|*.ipa|*.ipsw|*.xpi|*.apk|*.aar|*.whl|*.vsix|*.crx|*.pk3|*.pk4) unzip "$1" ;;
+  if [[ ! -f $full_path ]]; then
+    error "'$file' is not a valid file"
+    return 1
+  fi
+
+  case $file_lower in
+    (*.tar.gz|*.tgz)
+      if has_cmd pigz; then
+        tar -I pigz -xvf "$full_path"
+      else
+        tar zxvf "$full_path"
+      fi ;;
+    (*.tar.bz2|*.tbz|*.tbz2)
+      if has_cmd pbzip2; then
+        tar -I pbzip2 -xvf "$full_path"
+      else
+        tar xvjf "$full_path"
+      fi ;;
+    (*.tar.xz|*.txz)
+      if has_cmd pixz; then
+        tar -I pixz -xvf "$full_path"
+      else
+        if tar --xz -tf &>/dev/null; then
+          tar --xz -xvf "$full_path"
+        else
+          xzcat "$full_path" | tar xvf -
+        fi
+      fi ;;
+    (*.tar.zma|*.tlz)
+      if tar --lzma -tf &>/dev/null; then
+        tar --lzma -xvf "$full_path"
+      else
+        lzcat "$full_path" | tar xvf -
+      fi ;;
+    (*.tar.zst|*.tzst)
+      if tar --zstd -tf &>/dev/null; then
+        tar --zstd -xvf "$full_path"
+      else
+        zstdcat "$full_path" | tar xvf -
+      fi ;;
+    (*.tar) tar xvf "$full_path" ;;
+    (*.tar.lz) has_cmd lzip && tar xvf "$full_path" ;;
+    (*.tar.lz4) lz4 -c -d "$full_path" | tar xvf - ;;
+    (*.tar.lrz) has_cmd lrzuntar && lrzuntar "$full_path" ;;
+    (*.gz)
+      stripped_name=$(basename "$file")
+      stripped_name=${stripped_name%.*}
+
+      if has_cmd pigz; then
+        pigz -cdk "$full_path" > "$stripped_name"
+      else
+        gunzip -ck "$full_path" > "$stripped_name"
+      fi ;;
+    (*.bz2)
+      if has_cmd pbzip2; then
+        pbzip2 -d "$full_path"
+      else
+        bunzip2 "$full_path"
+      fi ;;
+    (*.xz) unxz "$full_path" ;;
+    (*.lrz) has_cmd lrunzip && lrunzip "$full_path" ;;
+    (*.lz4) lz4 -d "$full_path" ;;
+    (*.lzma) unlzma "$full_path" ;;
+    (*.z) uncompress "$full_path" ;;
+    (*.zip|*.war|*.jar|*.ear|*.sublime-package|*.ipa|*.ipsw|*.xpi|*.apk|*.aar|*.whl|*.vsix|*.crx|*.pk3|*.pk4) unzip "$full_path" ;;
     (*.rar)
       if has_cmd unrar; then
-        unrar x -ad "$1"
+        unrar x -ad "$full_path"
       elif has_cmd unar; then
-        unar -o . "$1"
+        unar -o . "$full_path"
       else
         warning "Cannot extract RAR files: install unrar or unar" >&2
         ret_val=1
       fi ;;
-    (*.rpm) rpm2cpio "$1" | cpio --quiet -id ;;
-    (*.7z | *.7z.[0-9]* | *.pk7) 7za x "$1" ;;
+    (*.rpm) rpm2cpio "$full_path" | cpio --quiet -id ;;
+    (*.7z | *.7z.[0-9]* | *.pk7) 7za x "$full_path" ;;
     (*.deb)
-      mkdir -p "control" "data"
-      ar vx "$1" > /dev/null
-      cd control; extract ../control.tar.*
-      cd ../data; extract ../data.tar.*
-      cd ..; command rm *.tar.* debian-binary ;;
-    (*.zst) unzstd --stdout "$1" > "${1:t:r}" ;;
-    (*.cab|*.exe) cabextract "$1" ;;
-    (*.cpio|*.obscpio) cpio -idmvF "$1" ;;
-    (*.zpaq) zpaq x "$1" ;;
-    (*.zlib) zlib-flate -uncompress < "$1" > "${file:r}" ;;
+      if has_cmd dpkg-debz; then
+        dpkg-deb -R "$full_path" .
+      else
+        ar vx "$full_path"
+        mkdir -p "control" "data"
+        do_action_in_dir "control" find .. -type f -name 'control.tar.*' -exec extract -r {} \;
+        do_action_in_dir "data" find .. -type f -name 'data.tar.*' -exec extract -r {} \;
+        command rm debian-binary
+      fi ;;
+    (*.zst)
+      stripped_name=$(basename "$file")
+      stripped_name=${stripped_name%.*}
+      unzstd --stdout "$full_path" > "$stripped_name" ;;
+    (*.cab|*.exe) cabextract "$full_path" ;;
+    (*.cpio|*.obscpio) cpio -idmvF "$full_path" ;;
+    (*.zpaq) zpaq x "$full_path" ;;
+    (*.zlib)
+      stripped_name=${file%.*}
+      zlib-flate -uncompress < "$full_path" > "$stripped_name" ;;
     (*)
-        warning "'$1' cannot be extracted"
+        warning "'$file' cannot be extracted"
         ret_val=1 ;;
   esac
 
@@ -100,43 +191,49 @@ mes_color() {
   local color=$1
   local msg=$2
 
-  printf "%b%s%b\n" "$color" "$msg" "$reset"
+  printf "%b%s%b\n" "$color" "$msg" "$NC"
 }
 
 mes_nc() {
-  mes_color "$reset" "$1"
+  mes_color "$NC" "$1"
 }
 
 error() {
   local msg="ERROR: $1"
-  mes_color "$red" "$msg" >&2
+  mes_color "$RED" "$msg" >&2
   return 1
 }
 
 warning() {
   local msg="WARNING: $1"
-  mes_color "$yellow" "$msg"
+  mes_color "$YELLOW" "$msg"
 }
 
 warning_severe() {
   local msg="WARNING: $1"
-  mes_color "$light_red" "$msg"
+  mes_color "$LIGHT_RED" "$msg"
 }
 
 info() {
-  mes_color "$cyan" "$1"
+  mes_color "$CYAN" "$1"
 }
 
 success() {
-  mes_color "$green" "$1"
+  mes_color "$GREEN" "$1"
 }
 
 mes_update() {
   local msg="--> Updating $1"
-  mes_color "$yellow" "$msg"
+  mes_color "$YELLOW" "$msg"
 }
 
 dot_install() {
-  printf "%b--> Installing %b%s %bconfig %b\n" "$blue" "$yellow" "$1" "$blue" "$reset"
-  . "$DOTFILES/install/install-${1}.sh"
+  printf "%b--> Installing %b%s %bconfig %b\n" "$BLUE" "$YELLOW" "$1" "$BLUE" "$NC"
+  local file="$DOTFILES/install/install-$1.sh"
+
+  if [[ -f $file ]]; then
+    "$file"
+  else
+    error "Found no install file with name $1"
+  fi
 }
