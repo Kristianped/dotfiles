@@ -1,7 +1,3 @@
-[user]
-    name=Kristian Pedersen
-    email=kristianped@gmail.com
-
 [core]
     editor="commit"
 	autocrlf = input
