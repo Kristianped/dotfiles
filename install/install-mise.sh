@@ -68,9 +68,9 @@ _install() {
   mise use -g python@3.14
   mise use -g uv
   mise use -g ruff
-  mise use -g pipx:clang-format
   mise use -g pipx:black
   mise use -g pipx:build
+  mise use -g pipx:clang-format
   mise use -g pipx:mmdc
   mise use -g pipx:pygments
   mise use -g pipx:pynvim
