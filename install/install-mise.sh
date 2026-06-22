@@ -12,7 +12,7 @@ if ! has_cmd kerl; then
 fi
 
 _install() {
-  local url file_name dir_name
+  local url file_name dir_name gpg_home
   # If mise is already installed, we remove it first
   if has_cmd mise; then
     mise implode --config --yes
@@ -32,6 +32,11 @@ _install() {
   dir_name=$(dirname "$MISE_GLOBAL_CONFIG_FILE")
   mkdir -p "$dir_name"
   touch "$MISE_GLOBAL_CONFIG_FILE"
+
+  # Ensure GNUPGHOME is created with the correct permissions
+  gpg_home=${GNUPGHOME:-$XDG_DATA_HOME/gnupg}
+  mkdir -p "$gpg_home"
+  chmod 0700 "$gpg_home"
 
   # Install tools
   mise use -g bat
