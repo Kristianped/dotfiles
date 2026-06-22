@@ -2,7 +2,7 @@
 #autoload
 
 _arguments \
-         '*:file:_files' \
+    '*:file:_files' \
 		{-x,--extended}'[Extended-search mode. Since 0. 10. 9, this is enabled by default.]' \
 		{-e,--exact}'[Enable exact-match.]' \
 		'-i[Case-insensitive match (default: smart-case match).]' \

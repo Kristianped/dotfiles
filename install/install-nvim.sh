@@ -67,9 +67,9 @@ _symlink_folder() {
 # If nvim is installed and FORCE_INSTALL is set to true, we also install
 should_install=0
 has_cmd nvim || should_install=1
-has_cmd nvim && is_true $force_install && should_install=1
+has_cmd nvim && is_true "$force_install" && should_install=1
 
-is_true $should_install && _install_latest
+is_true "$should_install" && _install_latest
 
 _symlink_folder ""
 _symlink_folder "lua/config"

@@ -4,9 +4,20 @@
 # EXPORT ENVIRONMENT VARIABLE #
 ###############################
 
-# Source zshcommon from dotfiles-folder
-DOTFILES=${DOTFILES:-$HOME/.dotfiles}
-[[ -f $DOTFILES/zsh/zshcommon ]] && source $DOTFILES/zsh/zshcommon
+# Source zshcommon
+
+# If sourced from install.sh
+if [[ -n ${install_dir:-} ]]; then
+  source $install_dir/zsh/zshcommon
+else
+  if [[ -n "${ZSH_VERSION:-}" ]]; then
+    0=${(%):-%N}
+    zsh_dir="${0:A:h}"
+  else
+    zsh_dir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+  fi
+  source $zsh_dir/zshcommon
+fi
 
 
 # +-----+
@@ -79,7 +90,9 @@ export NPM_CONFIG_USERCONFIG=$XDG_CONFIG_HOME/npm/npmrc
 # +--------+
 # | DOTNET |
 # +--------+
-export DOTNET_CLI_HOME=$XDG_DATA_HOME/dotnet
+export DOTNET_ROOT=$XDG_DATA_HOME/dotnet
+export DOTNET_CLI_HOME=$XDG_CACHE_HOME/dotnet-cli
+export MISE_DOTNET_ROOT=$DOTNET_ROOT
 
 
 # +------+
@@ -106,7 +119,7 @@ export NVIM_PYTHON_LOG_FILE=$XDG_STATE_HOME/nvim/nvim_python.log
 export NVIM_PYTHON_LOG_LEVEL=DEBUG
 
 # +------+
-# | NVIM |
+# | TMUX |
 # +------+
 export TMUX_CONFIG=$XDG_CONFIG_HOME/tmux
 export TMUX_PLUGIN_MANAGER_PATH=$XDG_DATA_HOME/tmux
@@ -127,9 +140,6 @@ export SDKMAN_DIR=$XDG_DATA_HOME/sdkman
 # +-----------------+
 # | Plugin managers |
 # +-----------------+
-
-export PLUGIN_MANAGER="omz"
-
 
 # Oh-My-Zsh
 export ZSH=$XDG_DATA_HOME/ohmyzsh

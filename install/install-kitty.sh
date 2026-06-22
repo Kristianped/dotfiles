@@ -24,7 +24,7 @@ _install_kitty() {
 
   # Download the installer
   url="https://sw.kovidgoyal.net/kitty/installer.sh"
-  file_name=$(download -o -f=kitty-installer.sh $url)
+  file_name=$(download -o -f=kitty-installer.sh "$url")
 
   # Run the installer
   chmod 0777 "$file_name"
@@ -53,7 +53,7 @@ _configure_kitty() {
     ln -sf "$DOTFILES/kitty/default_color.conf" "$theme_file"
   fi
 
-  # Place the kitty.desktop file somewhere it can be found by the OS
+  # Place the file 'kitty.desktop' somewhere it can be found by the OS
   cp "$kitty_home/share/applications/kitty.desktop" "$applications_home/kitty.desktop"
 
   # Update the paths to the kitty and its icon in the kitty desktop file(s)

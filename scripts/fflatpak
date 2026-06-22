@@ -1,0 +1,208 @@
+#!/usr/bin/env bash
+source "$DOTFILES/colors"
+
+set -o errexit
+set -o pipefail
+
+script_name=$(basename "$0")
+readonly script_name
+
+if ! command -v fzf >/dev/null 2>&1; then
+  printf "%b%s%b\n" "$RED" "Fzf is not installed" "$NC"
+  exit 64
+fi
+if ! command -v flatpak >/dev/null 2>&1; then
+  printf "%b%s%b\n" "$RED" "Apt is not installed" "$NC"
+  exit 64
+fi
+
+# Preview command
+preview_fun() {
+  local tmp_file mode pkg_name info_cmd
+  tmp_file=$1
+  mode=$(cat "$tmp_file")
+  pkg_name=$2
+
+  if [[ $mode == "in" ]]; then
+    info_cmd="flatpak remote-info flathub --user $pkg_name"
+  else
+    info_cmd="flatpak info $pkg_name"
+  fi
+
+  echo "$info_cmd" | bash \
+    | awk -F ":" -v ylw="$(tput setaf 3)" -v wht="$(tput setaf 7)" -v bold="$(tput bold)" -v reset="$(tput sgr0)" \
+    '
+      {
+        print ylw bold $1 reset wht $2 reset
+      }
+    '
+}
+export -f preview_fun
+
+list_packages() {
+  local length_cmd list_cmd max_len
+  if [[ $1 == "remote" ]]; then
+    length_cmd="flatpak remote-ls flathub --user --app --cached --columns=app"
+    list_cmd="flatpak remote-ls flathub --user --app --cached --columns=name,app,branch | grep stable"
+  else
+    length_cmd="flatpak list --user --app --columns=app | tail -n +1"
+    list_cmd="flatpak list --user --app --columns=name,app,branch | tail -n +1"
+  fi
+
+  # Find length of the longest app
+  max_len=$(echo "$length_cmd" | bash | awk 'BEGIN{max=0} {if (length($1)>max) max=length($1)} END{print (max)}')
+
+  echo "$list_cmd" | bash | sort \
+    | awk -v ml="${max_len}" -v cyan="$(tput setaf 6)" -v blue="$(tput setaf 4)" -v bold="$(tput bold)" -v reset="$(tput sgr0)" \
+    '
+      {
+        app=$(NF - 1)
+        app=sprintf("%-*s", ml, app)
+        name=""
+        for (i = 1; i < NF - 1; i++) {
+          name=name" "$i
+        }
+
+        print blue bold app reset" " cyan name reset
+      }
+    '
+}
+export -f list_packages
+
+
+# Install mode
+ins_query() {
+  list_packages "remote"
+}
+export -f ins_query
+ins_prompt=$(printf "%b%s%b" "$GREEN" "Install packages: " "$NC")
+
+
+# Remove mode
+rem_query() {
+  list_packages "local"
+}
+export -f rem_query
+rem_prompt=$(printf "%b%s%b" "$YELLOW" "Remove package: " "$NC")
+
+
+# Purge mode
+pur_prompt=$(printf "%b%s%b" "$RED" "Purge package: " "$NC")
+
+
+# Update mode
+upd_query() {
+  local pkg_count
+  pkg_count=$(flatpak remote-ls flathub --user --app --updates | tail -n +1 | wc -l)
+
+  if [[ $pkg_count -eq 0 ]]; then
+    echo "No updates available"
+  else
+    flatpak remote-ls flathub --user --app --updates --columns=name,app | tail -n +1 \
+      | awk -v cyan="$(tput setaf 6)" -v blue="$(tput setaf 4)" -v bold="$(tput bold)" -v reset="$(tput sgr0)" \
+      '
+        {
+          name=""
+          for (i = 1; i < NF; i++) {
+            name=name" "$i
+          }
+
+          print blue bold $NF reset" -" cyan name reset
+        }
+      '
+  fi
+}
+export -f upd_query
+upd_prompt=$(printf "%b%s%b" "$MAGENTA" "Update package: " "$NC")
+
+
+# Run mode
+run_prompt=$(printf "%b%s%b" "$BLUE" "Execute package: " "$NC")
+
+
+# Reload after an action
+reload_query() {
+  local tmp_file mode
+  tmp_file="$1"
+  mode=$(cat "$tmp_file")
+
+  case $mode in
+  in) ins_query ;;
+  rm|rn|pr) rem_query ;;
+  up) upd_query ;;
+  esac
+}
+export -f reload_query
+
+
+# Execute
+execute_query() {
+  local tmp_file mode pkg_name
+  tmp_file=$1
+  mode=$(cat "$tmp_file")
+  pkg_name=$2
+
+  case $mode in
+  in) flatpak install flathub --user --assumeyes "$pkg_name" ;;
+  rm) flatpak uninstall --assumeyes "$pkg_name" ;;
+  pr) flatpak uninstall --delete-data --assumeyes "$pkg_name" ;;
+  up)
+    [[ $2 = "No updates available" ]] && return
+    flatpak update "$pkg_name"
+    ;;
+  rn) flatpak run "$pkg_name" ;;
+  *) read -s -r -n1 -p $'\nPress any key to continue...' && printf '\n' ;;
+  esac
+}
+export -f execute_query
+
+
+mapfile -d '' fhelp <<-EOF
+
+        "${script_name}"
+        Interactive package manager for Flatpak
+
+        Alt-i       Install mode (default)
+        Alt-r       Remove mode
+        Alt+p       Remove mode (purge)
+        Alt-u       Updates mode
+        Alt-e       Execute mode(run installed packages)
+        Alt-m       Update package metadata cache
+        Alt+a       Remove unused runtimes and extensions
+
+        Enter       Confirm
+        Alt+h       Help (this page)
+        ESC         Quit
+EOF
+
+declare tmp_file
+if tmp_file="$(mktemp --tmpdir "$script_name".XXXXXX)"; then
+
+  package_name="echo {} | tr -s '[:blank:]' ' ' | awk '{print \$NF}' | xargs -I %"
+
+  flatpak update --user --appstream && printf 'in' > "$tmp_file" && ins_query | SHELL="/bin/bash" fzf \
+  --query "${*:-}" \
+  --ansi \
+  --cycle \
+  --reverse \
+  --marker ' ' \
+  --header " $script_name | Press Alt+h for help or ESC to quit" \
+  --header-first \
+  --prompt "$ins_prompt" \
+  --preview-window='right,50%,border-rounded' \
+  --preview "${package_name} bash -c 'preview_fun \"${tmp_file}\" {1}'" \
+  --bind "alt-h:preview(printf \"${fhelp[0]}\")" \
+  --bind "alt-m:execute(flatpak update --user --appstream;read -s -r -n1 -p $'\nPress any key to continue...' && printf '\n')+reload(bash -c 'reload_query \"${tmp_file}\"')" \
+  --bind "alt-a:execute(flatpak uninstall --unused;read -s -r -n1 -p $'\nPress any key to continue...' && printf '\n')+reload(bash -c 'reload_query \"${tmp_file}\"')" \
+  --bind "alt-i:unbind(alt-i)+reload(bash -c ins_query)+change-prompt($ins_prompt)+execute-silent(printf 'in' > \"${tmp_file}\")+first+rebind(alt-r,alt-p,alt-u,alt-e)" \
+  --bind "alt-r:unbind(alt-r)+reload(bash -c rem_query)+change-prompt($rem_prompt)+execute-silent(printf 'rm' > \"${tmp_file}\")+first+rebind(alt-i,alt-p,alt-u,alt-e)" \
+  --bind "alt-p:unbind(alt-p)+reload(bash -c rem_query)+change-prompt($pur_prompt)+execute-silent(printf 'pr' > \"${tmp_file}\")+first+rebind(alt-i,alt-r,alt-u,alt-e)" \
+  --bind "alt-u:unbind(alt-u)+reload(bash -c upd_query)+change-prompt($upd_prompt)+execute-silent(printf 'up' > \"${tmp_file}\")+first+rebind(alt-i,alt-r,alt-p,alt-e)" \
+  --bind "alt-e:unbind(alt-e)+reload(bash -c rem_query)+change-prompt($run_prompt)+execute-silent(printf 'rn' > \"${tmp_file}\")+first+rebind(alt-i,alt-r,alt-p,alt-u)" \
+  --bind "enter:execute(bash -c 'execute_query \"${tmp_file}\" {1}')+reload(bash -c 'reload_query \"${tmp_file}\"')"
+
+  rm -f "${tmp_file}" &> /dev/null
+else
+  printf "%b%s%b\n" "$RED" "Failed to create tmp file. $TMPDIR (or /tmp if $TMPDIR is unset) may not be writable." "$NC"
+  exit 65
+fi

@@ -29,6 +29,7 @@ _parse_args() {
     exit 0
   fi
 
+  local i
   for i in "$@"; do
     case $i in
       -h|--help)
@@ -98,7 +99,7 @@ _extract_to_dir() {
   )
 
   # remove the archive-file if '-r' is provided
-  is_true $remove_archive && rm -r "$full_path"
+  is_true "$remove_archive" && rm -r "$full_path"
 
 
   ### If the extracted archive contains a single folder, move everything up
@@ -150,7 +151,7 @@ _main() {
   for file in "${files[@]}"; do
     [[ -f $file ]] || continue
 
-    if is_true $own_dir; then
+    if is_true "$own_dir"; then
       _extract_to_dir "$file"
       continue
     fi
@@ -159,7 +160,7 @@ _main() {
     full_path="$(readlink -f "$file" 2>/dev/null || echo "$file")"
 
     # Extract archive
-    extract_file "$full_path" && is_true $remove_archive && rm -r "$full_path"
+    extract_file "$full_path" && is_true "$remove_archive" && rm -r "$full_path"
 
   done
 }

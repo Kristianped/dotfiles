@@ -203,7 +203,7 @@ _git_open_repo() {
   if [ "$#" -eq 2 ]; then
     username="$1"
     reponame="$2"
-    __open "http://www.github.com/$username/$reponame"
+    __open "https://www.github.com/$username/$reponame"
   else
     _git_open_file $1
   fi

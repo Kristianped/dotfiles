@@ -19,12 +19,12 @@ case $theme in
   (tokyonight)
     dir=$TMUX_PLUGIN_MANAGER_PATH/tokyonight
     repo="janoamaral/tokyo-night-tmux" ;;
-  (*)
-    theme_options["@nord_tmux_no_patched_font"]="0"
-    theme_options["@nord_tmux_date_format"]="%d/%m-%Y"
+  (nord)
     dir=$TMUX_PLUGIN_MANAGER_PATH/nord
     repo="arcticicestudio/nord-tmux" ;;
 esac
+
+[[ -z $repo ]] && return
 
 clone_or_pull "$repo" "$dir"
 

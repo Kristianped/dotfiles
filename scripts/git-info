@@ -8,6 +8,7 @@ if [ "$1" == "--no-config" ] || [ "$1" == "-nc" ]; then
 fi
 
 get_config() {
+  local cmd_get_config
   cmd_get_config="$(git config --get-all git-extras.info.config-grep)"
   if [ -z "$cmd_get_config" ]; then
     git config --list
@@ -17,6 +18,7 @@ get_config() {
 }
 
 most_recent_commit() {
+  local cmd_get_log
   cmd_get_log="$(git config --get-all git-extras.info.log)"
   if [ -z "$cmd_get_log" ]; then
     git log --max-count=1 --pretty=short

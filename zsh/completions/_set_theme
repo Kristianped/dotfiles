@@ -6,4 +6,4 @@ _arguments \
   '(-l --list)'{-l,--list}'[Show available themes]' \
   '(-g --gui)'{-g,--gui}'[Change theme for Gui applications]' \
   '(-w --wallpaper)'{-w,--wallpaper}'[Change the wallpaper as well]' \
-  "*:theme:_values -s ' ' 'option' 'dracula' 'gruvbox-dark' 'tokyonight-moon' 'tokyonight-storm'"
+  "*:theme:_values -s ' ' 'option' 'dracula' 'gruvbox-dark' 'nord' 'tokyonight-moon' 'tokyonight-storm'"

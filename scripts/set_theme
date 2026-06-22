@@ -52,10 +52,10 @@ _set_gnome_theme() {
 
   has_cmd uuidgen && profile_slug=$(uuidgen)
 
-  if [[ -n "$(dconf read $base_key/default)" ]]; then
-    default_slug=$(dconf read $base_key/default | tr -d \')
+  if [[ -n "$(dconf read "$base_key/default")" ]]; then
+    default_slug=$(dconf read "$base_key/default" | tr -d \')
   else
-    default_slug=$(dconf list $base_key/ | grep '^:' | head -n1 | tr -d :/)
+    default_slug=$(dconf list "$base_key"/ | grep '^:' | head -n1 | tr -d :/)
   fi
 
   default_key="$base_key/:$default_slug"
@@ -105,6 +105,7 @@ _pick_random_theme() {
     new_theme=${all_themes[ $RANDOM % ${#all_themes[@]} ]}
   else
     # Remove 'current_theme' from 'all_themes' and pick random theme from new array
+    local item
     local theme_array=()
     for item in "${all_themes[@]}"; do
       [[ "$item" != "$current_theme" ]] && theme_array+=("$item")
@@ -116,6 +117,8 @@ _pick_random_theme() {
 }
 
 _parse_args() {
+  local i
+
   for i in "$@"; do
     case $i in
       -h|--help)
@@ -173,12 +176,12 @@ _set_theme() {
   _symlink "nvim.lua" "nvim/lua/plugins/theme.lua"
   _symlink "tmux" "tmux/theme"
 
-  # Load profile for gnome terminal
-  has_cmd dconf && _set_gnome_theme
-
-  if is_true $gui_enabled; then
+  if is_true "$gui_enabled"; then
     mkdir -p "$XDG_CONFIG_HOME/zathura"
     _symlink "zathurarc" "zathura/themerc"
+
+    # Load profile for gnome terminal
+    has_cmd dconf && _set_gnome_theme
 
     gtk_theme_path=$XDG_DATA_HOME/themes/$theme
 
@@ -205,7 +208,7 @@ _set_theme() {
       gsettings set org.gnome.desktop.interface icon-theme "$theme"
     fi
 
-      is_true $switch_wallpaper && set_wallpaper
+      is_true "$switch_wallpaper" && set_wallpaper
   fi
 
   info "'$theme' is your active theme"

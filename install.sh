@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env bash
 
 set -o errexit
 set -o pipefail
@@ -7,16 +7,15 @@ set -o pipefail
 # includes #
 ############
 
-script_dir="${0:A:h}"
-source "$script_dir/colors"
-source "$script_dir/bootstrap"
-source "$script_dir/zsh/zshenv"
+install_dir="$(dirname "$(readlink -f "$0")")"
+source "$install_dir/bootstrap"
+source "$install_dir/zsh/zshenv"
 
 ################
 # presentation #
 ################
 
-skull=$(<"$script_dir/skull.txt")
+skull=$(<"$install_dir/skull.txt")
 mes_color "$MAGENTA" "$skull"
 echo
 mes_color "$YELLOW" "!!! WARNING !!!"

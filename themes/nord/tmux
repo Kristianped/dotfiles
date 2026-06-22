@@ -1,0 +1,4 @@
+tmux_theme="Nord"
+
+theme_options["@nord_tmux_no_patched_font"]="0"
+theme_options["@nord_tmux_date_format"]="%d/%m-%Y"

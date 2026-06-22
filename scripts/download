@@ -44,7 +44,7 @@ _curl() {
     "--speed-limit" "100"
     "--speed-time" "30"
   )
-  is_true $is_silent && args+=("--silent")
+  is_true "$is_silent" && args+=("--silent")
   args+=("${@}")
 
   curl "${args[@]}"
@@ -58,7 +58,7 @@ _wget() {
     "--tries=4"
     "--retry-connrefused"
   )
-  is_true $is_silent && args+=("--quiet")
+  is_true "$is_silent" && args+=("--quiet")
   args+=("${@}")
 
   wget "${args[@]}"
@@ -103,7 +103,7 @@ _find_download_dir() {
   # 4. Current dir
   local default_download_dir=${XDG_DOWNLOAD_DIR:-$CURRENT_DIR}
 
-  if is_true $is_temp; then
+  if is_true "$is_temp"; then
     local tmp_dir
     tmp_dir=$(_get_temp_dir)
     download_dir="$tmp_dir"
@@ -126,6 +126,7 @@ _parse_args() {
     exit 0
   fi
 
+  local i
   for i in "$@"; do
     case $i in
       -h|--help)
@@ -177,7 +178,7 @@ _parse_args() {
 
 _parse_args "$@"
 
-if is_true $is_pipe; then
+if is_true "$is_pipe"; then
   if ! _pipe "$url"; then
     error "URL did not respond successfully, retry or check your connection: $url"
     exit 1

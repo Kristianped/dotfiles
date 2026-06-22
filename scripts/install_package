@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+
+set -o errexit
+set -o pipefail
+set -o nounset
+
+source "$DOTFILES/bootstrap"
+
+packages_auto_confirm=0
+manager=""
+confirm_flag=""
+packages=()
+
+_usage() {
+  cat <<\EOF
+  Utility program to install packages. The following package managers are supported:
+  - pacman
+  - yay
+  - apt
+  - dnf
+  - flatpak
+  - snap
+  - brew
+  - brew-cask
+  - mise
+
+  Usage: install_package [options...] <packages>
+  -h, --help               - Shows this text
+  -m, --manager=<manager>  - The manager used to install packages; apt, pacman, yay etc.
+  -y, --yes                - Install packages without confirmation
+EOF
+}
+
+_parse_args() {
+  if [ $# -eq 0 ]; then
+    _usage
+    exit 0
+  fi
+
+  local i
+  for i in "$@"; do
+    case $i in
+      -h|--help)
+        _usage
+        exit 0 ;;
+      -m=*|--manager=*)
+        manager="${i#*=}"
+        shift ;;
+      -y|--yes)
+        packages_auto_confirm=1
+        shift ;;
+      -*) error "Unknown option: '$1'" ;;
+      *) ;;
+    esac
+  done
+
+  if [ $# -eq 0 ]; then
+    error "No packages provided"
+  fi
+
+  packages=("$@")
+}
+
+_parse_args "$@"
+
+if is_true "$packages_auto_confirm"; then
+  case $manager in
+    pacman) confirm_flag="--noconfirm" ;;
+    yay) confirm_flag="--noconfirm --answerdiff None --answerclean None" ;;
+    apt) confirm_flag="--yes" ;;
+    dnf|flatpak) confirm_flag="--assumeyes" ;;
+  esac
+fi
+
+case $manager in
+  pacman) sudo pacman -Syu "$confirm_flag" --needed "${packages[@]}" ;;
+  yay) yay -S "$confirm_flag" --needed "${packages[@]}" ;;
+  apt) sudo apt update && sudo apt install "$confirm_flag" "${packages[@]}" ;;
+  dnf) sudo dnf install "$confirm_flag" "${packages[@]}" ;;
+  flatpak) flatpak install "$confirm_flag" --user flathub "${packages[@]}" ;;
+  snap) sudo snap install "${packages[@]}" ;;
+  brew) brew install "${packages[@]}" ;;
+  brew-cask) brew install --cask "${packages[@]}" ;;
+  mise) mise use --global "${packages[@]}" ;;
+  *) error "Unknown package manager: '$manager'" ;;
+esac

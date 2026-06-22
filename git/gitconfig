@@ -1,14 +1,10 @@
 [user]
     name=Kristian Pedersen
-    email=extkrp@brreg.no
+    email=kristianped@gmail.com
 
 [core]
-    editor="flatpak run re.sonny.Commit"
-
-[re.sonny.Commit]
-    title-length-hint=50
-    body-length-wrap=72
-    auto-capitalize-title=true
+    editor="commit"
+	autocrlf = input
 
 [diff "lesspipe"]
     textconv = LESSQUIET=1 lesspipe.sh
@@ -41,6 +37,9 @@
 
 [status]
     showUntrackedFiles = all
+
+[include]
+  path = ~/.config/git/config.local
 
 [alias]
     fixup = "!sh -c '(git diff-files --quiet || (echo Unstaged changes, please commit or stash with --keep-index; exit 1)) && COMMIT=$(git rev-parse $1) && git commit --fixup=$COMMIT && git rebase -i --autosquash $COMMIT~1' -"

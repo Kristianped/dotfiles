@@ -57,7 +57,6 @@ show_image() {
 mime=$(file -Lbs --mime-type "$1")
 category=${mime%%/*}
 kind=${mime##*/}
-ext=${1##*.}
 image_shown=${LESS_SHOW_IMAGE:-0}
 
 if [[ "$kind" == "vnd.sqlite3" ]] && has_cmd yes sqlite3 bat; then
@@ -79,8 +78,8 @@ elif [[ "$kind" == "rfc822" ]] && has_cmd bat; then
   bat --color=always -lEmail "$1"
 # https://github.com/wofr06/lesspipe/pull/106
 elif [[ "$category" == "image" ]]; then
-  is_true $image_shown && show_image "$1"
-  is_true $image_shown || file "$1"
+  is_true "$image_shown" && show_image "$1"
+  is_true "$image_shown" || file "$1"
 
   if has_cmd exiftool; then
 	exiftool "$1" | bat --color=always -plyaml

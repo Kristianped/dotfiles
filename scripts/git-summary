@@ -86,7 +86,7 @@ active_days() {
 #
 commit_count() {
   # shellcheck disable=SC2086
-  git rev-list $MERGES_ARG --count "$commit"
+  git rev-list $MERGES_ARG --count "$1"
 }
 
 #
@@ -171,6 +171,7 @@ last_active() {
 # list the last modified author for each line
 #
 single_file() {
+  local data
   while read -r data
   do
     if [[ $(file "$data") = *text* ]]; then

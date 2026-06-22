@@ -7,17 +7,6 @@ alias bigf='find / -xdev -type f -size +500M'  # display "big" files > 500M
 # +-----+
 alias xclass='xprop | grep WM_CLASS' # display xprop class
 
-# +----+
-# | ls |
-# +----+
-
-#alias ls='ls --color=auto'
-#alias l='ls -l'
-#alias ll='ls -lahF'
-#alias lls='ls -lahFtr'
-#alias la='ls -A'
-#alias lc='ls -CF'
-
 # +------+
 # | wget |
 # +------+
@@ -99,7 +88,6 @@ alias dvim="vim -u /usr/share/nvim/archlinux.vim" # nvim with default config
 alias nvimc='rm -I $VIMCONFIG/swap/*'             # clean nvim swap file
 alias nvimcu='rm -I $VIMCONFIG/undo/*'            # clean the vim undo
 alias nvimd='nvim --noplugin -u NONE'             # launch nvim without any plugin or config (nvim debug)
-alias nvimfr='nvim +e /tmp/scratchpad.md -c "set spelllang=fr"'
 alias lvim='\vim -c "set nowrap|syntax off"'        # fast vim for big files / big oneliner
 
 # +------+
@@ -141,10 +129,25 @@ alias doc='cd $HOME/Documents'
 alias dow='cd $HOME/Downloads'
 alias dot='cd $HOME/.dotfiles'
 
-# print things
+# +-------+
+# | print |
+# +-------+
 alias print-fpath='echo $FPATH | tr ":" "\n"'
 alias print-path='echo $PATH | tr ":" "\n"'
 alias print-functions='print -l ${(k)functions[(I)[^_]*]} | sort'
+
+# +--------+
+# | commit |
+# +--------+
+if command -v flatpak >/dev/null 2>&1; then
+  if flatpak info re.sonny.Commit >/dev/null 2>&1; then
+    alias commit='flatpak run re.sonny.Commit'
+  else
+    alias commit='$EDITOR'
+  fi
+else
+  alias commit='$EDITOR'
+fi
 
 # +-------+
 # | maven |

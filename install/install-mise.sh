@@ -12,6 +12,7 @@ if ! has_cmd kerl; then
 fi
 
 _install() {
+  local url file_name dir_name
   # If mise is already installed, we remove it first
   if has_cmd mise; then
     mise implode --config --yes
@@ -20,7 +21,7 @@ _install() {
 
   # Download the installer
   url="https://mise.run"
-  file_name=$(download -o -f=mise-installer.sh $url)
+  file_name=$(download -o -f=mise-installer.sh "$url")
 
   # Run the installer
   chmod 0777 "$file_name"
@@ -119,7 +120,7 @@ should_install=0
 has_cmd mise || should_install=1
 has_cmd mise && is_true "$force_install" && should_install=1
 
-if is_true $should_install; then
+if is_true "$should_install"; then
   info "Installing mise"
   _install
 else

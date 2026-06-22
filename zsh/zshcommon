@@ -4,7 +4,6 @@
 export DOTFILES=${DOTFILES:-$HOME/.dotfiles}
 export WORKSPACE=${WORKSPACE:-$HOME/workspace}
 
-
 # +-----+
 # | XDG |
 # +-----+
@@ -17,17 +16,24 @@ export XDG_STATE_HOME=${XDG_STATE_HOME:-$HOME/.local/state}
 export XDG_BIN_HOME=${XDG_BIN_HOME:-$HOME/.local/bin}
 export XDG_MAN_HOME=${XDG_MAN_HOME:-$XDG_DATA_HOME/man}
 
-# Ensure XDG directories exist.
-for xdgdir in XDG_{CONFIG,CACHE,DATA,STATE,BIN,MAN}_HOME; do
-  [[ -e ${(P)xdgdir} ]] || mkdir -p ${(P)xdgdir}
-done
+# Set XDG_DATA_DIRS if not set
+if [[ -z ${XDG_DATA_DIRS:-} ]]; then
+  export XDG_DATA_DIRS=/usr/local/share/:/usr/share/:/var/lib/flatpak/exports/share:$XDG_DATA_HOME/flatpak/exports/share
+fi
 
+# Ensure XDG directories exist.
+mkdir -p \
+  "$XDG_CONFIG_HOME" \
+  "$XDG_CACHE_HOME" \
+  "$XDG_DATA_HOME" \
+  "$XDG_STATE_HOME" \
+  "$XDG_BIN_HOME" \
+  "$XDG_MAN_HOME"
 
 # +----------+
 # | LANGUAGE |
 # +----------+
 export LANG="${LANG:-en_US.UTF-8}"
-
 
 # +-----+
 # | ZSH |
@@ -35,7 +41,6 @@ export LANG="${LANG:-en_US.UTF-8}"
 export ZDOTDIR=${ZDOTDIR:-$XDG_CONFIG_HOME/zsh}
 export ZSH_COMPDUMP=$XDG_CACHE_HOME/zsh/zcompdump
 export HISTFILE=$XDG_CACHE_HOME/zsh/zsh_history
-export ZFUNCDIR=$DOTFILES/zsh/functions
 
 
 # +-----------+
@@ -43,34 +48,114 @@ export ZFUNCDIR=$DOTFILES/zsh/functions
 # +-----------+
 export TOOLBOX_HOME=${TOOLBOX_HOME:-$XDG_DATA_HOME/JetBrains/Toolbox}
 
-
 # +-------+
 # | PATHS |
 # +-------+
-# Ensure path arrays do not contain duplicates.
-typeset -gU path fpath cdpath mailpath manpath
+
+if [[ -n "${ZSH_VERSION:-}" ]]; then
+  # Ensure path arrays do not contain duplicates.
+  typeset -gU path fpath cdpath mailpath manpath
+fi
+
+path_contains() {
+  local dir
+  dir="$2"
+
+  case $1 in
+    p|path)
+      [[ -z ${PATH:-} ]] && return 1
+
+      case :$PATH: in
+        *:"$dir":*) return 0 ;;
+        *) return 1 ;;
+      esac
+    ;;
+    f|fpath)
+      [[ -z ${FPATH:-} ]] && return 1
+
+      case :$FPATH: in
+        *:"$dir":*) return 0 ;;
+        *) return 1 ;;
+      esac
+    ;;
+    cd|cdpath)
+      [[ -z ${CDPATH:-} ]] && return 1
+
+      case :$CDPATH: in
+        *:"$dir":*) return 0 ;;
+        *) return 1 ;;
+      esac
+    ;;
+    mail|mailpath)
+      [[ -z ${MAILPATH:-} ]] && return 1
+
+      case :$MAILPATH: in
+        *:"$dir":*) return 0 ;;
+        *) return 1 ;;
+      esac
+    ;;
+    man|manpath)
+      [[ -z ${MANPATH:-} ]] && return 1
+
+      case :$MANPATH: in
+        *:"$dir":*) return 0 ;;
+        *) return 1 ;;
+      esac
+    ;;
+  esac
+
+  echo "ERROR - Unknown path-type: '$1'"
+}
+
+prepend_to_path() {
+  if path_contains "$1" "$2"; then
+    return
+  fi
+
+  case $1 in
+    p|path) export PATH="$2${PATH:+":$PATH"}" ;;
+    f|fpath) export FPATH="$2${FPATH:+":$FPATH"}" ;;
+    cd|cdpath) export CDPATH="$2${CDPATH:+":$CDPATH"}" ;;
+    mail|mailpath) export MAILPATH="$2${MAILPATH:+":$MAILPATH"}" ;;
+    man|manpath) export MANPATH="$2${MANPATH:+":$MANPATH"}" ;;
+  esac
+}
+
+append_to_path() {
+  if path_contains "$1" "$2"; then
+    return
+  fi
+
+  case $1 in
+    p|path) export PATH="${PATH:+"$PATH:"}$2" ;;
+    f|fpath) export FPATH="${FPATH:+"$FPATH:"}$2" ;;
+    cd|cdpath) export CDPATH="${CDPATH:+"$CDPATH:"}$2" ;;
+    mail|mailpath) export MAILPATH="${MAILPATH:+"$MAILPATH:"}$2" ;;
+    man|manpath) export MANPATH="${MANPATH:+"$MANPATH:"}$2" ;;
+  esac
+}
 
 # Set the list of directories that zsh searches for commands.
-path=(
-  $XDG_BIN_HOME
-  $HOME/bin
-  $XDG_DATA_HOME/nvim/bin
-  $XDG_DATA_HOME/python/bin
-  $TOOLBOX_HOME/scripts
-  /usr/local/bin
-  /usr/local/sbin
-  $path
-)
+prepend_to_path "p" "$TOOLBOX_HOME/scripts"
+prepend_to_path "p" "$XDG_DATA_HOME/python/bin"
+prepend_to_path "p" "$XDG_DATA_HOME/nvim/bin"
+prepend_to_path "p" "$XDG_BIN_HOME"
+prepend_to_path "p" "$HOME/bin"
+append_to_path "p" "/usr/local/bin"
+append_to_path "p" "/usr/local/sbin"
 
 # Add XDG_MAN_HOME to manpath
-manpath=(
-  /usr/man
-  /usr/share/man
-  /usr/local/man
-  /usr/local/share/man
-  /usr/X11R6/man
-  /opt/man
-  /snap/man
-  $XDG_MAN_HOME
-  $manpath
-)
+append_to_path "man" "/usr/man"
+append_to_path "man" "/usr/share/man"
+append_to_path "man" "/usr/local/man"
+append_to_path "man" "/usr/local/share/man"
+append_to_path "man" "/usr/X11R6/man"
+append_to_path "man" "/opt/man"
+append_to_path "man" "/snap/man"
+append_to_path "man" "$XDG_MAN_HOME"
+
+
+
+
+
+

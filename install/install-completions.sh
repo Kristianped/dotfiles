@@ -3,7 +3,7 @@
 source "$DOTFILES/bootstrap"
 
 completions_folder="$ZDOTDIR/completions"
-make_dir "$completions_folder"
+mkdir -p "$completions_folder"
 
 # Dotnet
 has_cmd dotnet && dotnet completions script zsh >| "$completions_folder/_dotnet"
@@ -50,3 +50,6 @@ fi
 # Uv and uvx
 has_cmd uv && uv generate-shell-completion zsh >| "$completions_folder/_uv"
 has_cmd uvx && uvx --generate-shell-completion zsh >| "$completions_folder/_uvx"
+
+# yq
+has_cmd yq && yq completion zsh >| "$completions_folder/_yq"

@@ -1,0 +1,4 @@
+# Git user and email to set up git automatically
+#export GIT_USER=""
+#export GIT_EMAIL=""
+

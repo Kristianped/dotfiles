@@ -30,6 +30,7 @@ _print_wallpapers() {
 }
 
 _pick_fzf() {
+  local selected_file preview_file
   selected_file="echo {} | awk '{print \$1}' | xargs -I {} find \"$DOTFILES/wallpapers\" -type f -name '{}*'"
   preview_file="${selected_file} | xargs -r fzf-preview"
 
@@ -46,7 +47,7 @@ _pick_wallpaper() {
   [[ -L $CURRENT_WALLPAPER ]] && current=$(basename "$(readlink -f "$CURRENT_WALLPAPER")")
 
   # If option --keep-current, we return the current wallpaper
-  if is_true $keep_current; then
+  if is_true "$keep_current"; then
     new_wallpaper=${current:-$default_wallpaper}
   else
     # Pick from 'dotfiles/wallpapers' with fzf
@@ -57,6 +58,7 @@ _pick_wallpaper() {
 }
 
 _parse_args() {
+  local i
   for i in "$@"; do
     case $i in
       -h|--help)
