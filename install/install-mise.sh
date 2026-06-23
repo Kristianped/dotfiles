@@ -50,6 +50,7 @@ _install() {
   mise use -g ripgrep
   mise use -g shfmt
   mise use -g shellcheck
+  mise use -g starship
   mise use -g tmux
   mise use -g tree-sitter
   mise use -g yq

@@ -8,8 +8,10 @@ set -o pipefail
 ############
 
 install_dir="$(dirname "$(readlink -f "$0")")"
-source "$install_dir/bootstrap"
 source "$install_dir/zsh/zshenv"
+source "$install_dir/bootstrap"
+source "$install_dir/install_config"
+
 
 ################
 # presentation #
@@ -26,12 +28,16 @@ if ! prompt_ask; then
   exit 0
 fi
 
+
 ###########
 # INSTALL #
 ###########
 
 # Install scripts
 dot_install scripts
+
+# Install packages
+dot_install packages
 
 # Install Mise
 dot_install mise
@@ -61,3 +67,33 @@ dot_install man
 has_cmd git && dot_install git
 has_cmd tmux && dot_install tmux
 has_cmd pgcli && dot_install pgcli
+
+if ! echo "$SHELL" | grep 'zsh' >/dev/null; then
+  info "Your current shell is '$SHELL'. Do you want to switch to zsh?"
+
+  if prompt_ask; then
+    chsh -s /bin/zsh
+  fi
+fi
+
+info "Do you want to set a color-theme?"
+if prompt_ask; then
+  theme_list=("dracula" "gruvbox-dark" "nord" "tokyonight-moon" "tokyonight-storm")
+  PS3="Enter a number: "
+  select theme_name in "${theme_list[@]}"; do
+    if [[ -z $theme_name ]]; then
+      warning "Invalid theme selected: '$REPLY'"
+      continue
+    fi
+
+    info "Set theme for GUI as well?"
+    if prompt_ask; then
+      set_theme -g "$theme_name"
+    else
+      set_theme "$theme_name"
+    fi
+    break
+  done
+fi
+
+success "Installation complete"

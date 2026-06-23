@@ -1,4 +1,22 @@
+#!/usr/bin/env bash
+
 # Git user and email to set up git automatically
 #export GIT_USER=""
 #export GIT_EMAIL=""
 
+# Packages to install for Debian/Ubuntu
+export PACKAGES_APT=(
+  "build-essential"
+  "chafa"
+  "curl"
+  "dnsutils"
+  "fontconfig"
+  "gnupg"
+  "libimage-exiftool-perl"
+  "libreadline-dev"
+  "unzip"
+  "wget"
+  "xz-utils"
+  "zip"
+  "zsh"
+)
