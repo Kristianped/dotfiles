@@ -41,6 +41,7 @@ dot_install packages
 
 # Install Mise
 dot_install mise
+eval "$(mise activate bash)"
 
 # Install bat-extras, lesspipe and fzf
 has_cmd bat && dot_install bat-extras

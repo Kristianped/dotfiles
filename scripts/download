@@ -20,6 +20,10 @@ _usage() {
   Utility program to download files, 'download' will use curl as primary tool and use wget if curl is not installed.
   By default 'download' will read the <url> to "Standard Output", unless the '-o' flag is used.
 
+  Example:
+  kitty_installer=$(download -o -f=kitty-installer.sh https://sw.kovidgoyal.net/kitty/installer.sh)
+  download https://raw.githubusercontent.com/Kristianped/dotfiles/refs/heads/main/skull.txt | bat
+
   Usage: download [options...] <url>
   -h, --help                  - Shows this text
   -s, --silent                - Silent mode
@@ -101,13 +105,15 @@ _find_download_dir() {
   # 2. Input argument
   # 3. XDG_DOWNLOAD_DIR
   # 4. Current dir
-  local default_download_dir=${XDG_DOWNLOAD_DIR:-$CURRENT_DIR}
 
   if is_true "$is_temp"; then
     local tmp_dir
     tmp_dir=$(_get_temp_dir)
     download_dir="$tmp_dir"
   else
+    local default_download_dir
+    default_download_dir=${XDG_DOWNLOAD_DIR:-$CURRENT_DIR}
+
     if [ -n "$download_dir" ]; then
       if [ "$download_dir" =  "." ]; then
         download_dir="$CURRENT_DIR"
