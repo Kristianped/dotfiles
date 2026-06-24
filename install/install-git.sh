@@ -57,19 +57,28 @@ _ask_for_email
 git_config_local=$XDG_CONFIG_HOME/git/config.local
 
 if [[ ! -f $git_config_local ]]; then
+  touch "$git_config_local"
+  chmod 0700 "$git_config_local"
+
   cat <<EOF > "$git_config_local"
 [user]
-  name = "$GIT_USER"
-  email = "$GIT_EMAIL"
+    name = $GIT_USER
+    email = $GIT_EMAIL
+    # Uncomment the option below if gpg.format is set to 'ssh'
+    # signingkey = ~/.ssh/id_ed25519.pub
 
-# Uncomment the options below to auto-sign your git commits / tags using GPG.
+# Uncomment the option below to use ssh for signing
+#[gpg]
+#    format = ssh
+
+# Uncomment the option below to auto-sign your git commits / tags
 #[commit]
-#  gpgsign = true
+#    gpgsign = true
 
 # This option requires git 2.23+ to work and you must annotate your tags,
 # although -m "" works if you want an empty message.
 #[tag]
-#  gpgSign = true
+#    gpgSign = true
 
 EOF
 fi
