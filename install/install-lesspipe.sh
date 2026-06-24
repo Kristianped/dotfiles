@@ -16,4 +16,4 @@ mandb -u -q
 
 # Replace '__LIBEXECDIR__' with the location to lesscomplete, and pipe the content into a completion-file
 mkdir -p "$ZDOTDIR/completions"
-< "$lesspipe_dir/zsh_completion" sed "s@__LIBEXECDIR__@$lesspipe_dir@" > "$ZDOTDIR/completions/_less"
+< "$lesspipe_dir/zsh_completion" sed "s@__LIBEXECDIR__@$lesspipe_dir@" >| "$ZDOTDIR/completions/_less"

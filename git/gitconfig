@@ -1,5 +1,4 @@
 [core]
-    editor="commit"
 	autocrlf = input
 
 [diff "lesspipe"]

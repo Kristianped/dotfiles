@@ -9,16 +9,8 @@ mkdir -p "$completions_folder"
 # Dotnet
 has_cmd dotnet && dotnet completions script zsh >| "$completions_folder/_dotnet" && completions_array+=("dotnet")
 
-# Eza
-has_cmd eza && download "https://raw.githubusercontent.com/eza-community/eza/main/completions/zsh/_eza" \
-  >| "$completions_folder/_eza" && completions_array+=("eza")
-
 # Helm
 has_cmd helm && helm completion zsh >| "$completions_folder/_helm" && completions_array+=("helm")
-
-# Kerl
-has_cmd kerl && download "https://raw.githubusercontent.com/kerl/kerl/master/zsh_completion/_kerl" \
-  >| "$completions_folder/_kerl" && completions_array+=("kerl")
 
 # Kubectl
 has_cmd kubectl && kubectl completion zsh >| "$completions_folder/_kubectl" && completions_array+=("kubectl")
@@ -30,7 +22,11 @@ has_cmd mise && mise completion zsh >| "$completions_folder/_mise" && completion
 has_cmd oc && oc completion zsh >| "$completions_folder/_oc" && completions_array+=("oc")
 
 # Podman
-has_cmd podman && podman completion zsh >| "$completions_folder/_podman" && completions_array+=("podman")
+if has_cmd podman; then
+  podman completion zsh >| "$completions_folder/_podman" && completions_array+=("podman")
+elif has_cmd podman-remote; then
+  podman-remote completion zsh >| "$completions_folder/_podman" && completions_array+=("podman")
+fi
 
 # Pip
 has_cmd pip && pip completion --zsh >| "$completions_folder/_pip" && completions_array+=("pip")
