@@ -16,6 +16,8 @@ export PACKAGES_APT=(
   "gnupg"
   "libimage-exiftool-perl"
   "libreadline-dev"
+  "man-db"
+  "manpages"
   "procps"
   "unzip"
   "wget"
