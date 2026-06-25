@@ -25,9 +25,9 @@ export PACKAGES_APT=(
 export PACKAGES_PACMAN=(
   "base"
   "base-devel"
+  "bind"
   "chafa"
   "curl"
-  "dnsutils"
   "fastfetch"
   "fontconfig"
   "gnupg"
