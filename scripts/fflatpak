@@ -12,7 +12,7 @@ if ! command -v fzf >/dev/null 2>&1; then
   exit 64
 fi
 if ! command -v flatpak >/dev/null 2>&1; then
-  printf "%b%s%b\n" "$RED" "Apt is not installed" "$NC"
+  printf "%b%s%b\n" "$RED" "Flatpak is not installed" "$NC"
   exit 64
 fi
 

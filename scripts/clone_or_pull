@@ -13,5 +13,12 @@ else
   echo "Installing $repo_path..."
   dir=$(dirname "$project_path")
   mkdir -p "$dir"
-  git clone "https://github.com/$repo_path.git" "$project_path" "${@:3}"
+
+  if [[ $repo_path == "https"* ]]; then
+    git clone "$repo_path" "$project_path" "${@:3}"
+  elif [[ $repo_path == "git@"* ]]; then
+    git clone "$repo_path" "$project_path" "${@:3}"
+  else
+    git clone "https://github.com/$repo_path.git" "$project_path" "${@:3}"
+  fi
 fi
