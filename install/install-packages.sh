@@ -34,7 +34,7 @@ _install_arch() {
   fi
 
   # Install packages
-  install_package -m pacman "${PACKAGES_PACMAN[@]}"
+  install_package -m=pacman "${PACKAGES_PACMAN[@]}"
 
   # Install Yay
   local yay_version_local yay_version_remote
