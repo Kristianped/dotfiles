@@ -34,8 +34,7 @@ _install_arch() {
   fi
 
   # Install packages
-  sudo pacman -Syyu
-  install_package -m=pacman "${PACKAGES_PACMAN[@]}"
+  install_package -m=pacman --y "${PACKAGES_PACMAN[@]}"
 
   # Install Yay
   local yay_version_local yay_version_remote

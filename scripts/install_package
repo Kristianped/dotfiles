@@ -50,15 +50,15 @@ _parse_args() {
         packages_auto_confirm=1
         shift ;;
       -*) error "Unknown option: '$1'" ;;
-      *) ;;
+      *)
+        packages+=("$1")
+        shift ;;
     esac
   done
 
-  if [ $# -eq 0 ]; then
+  if [ ${#packages[@]} -eq 0 ]; then
     error "No packages provided"
   fi
-
-  packages=("$@")
 }
 
 _parse_args "$@"
@@ -72,8 +72,16 @@ if is_true "$packages_auto_confirm"; then
   esac
 fi
 
+_install_pacman() {
+  sudo pacman -Syu
+  local pkg
+  for pkg in "${packages[@]}"; do
+    sudo pacman -S "$confirm_flag" --needed "$pkg"
+  done
+}
+
 case $manager in
-  pacman) sudo pacman -Syu "$confirm_flag" --needed "${packages[@]}" ;;
+  pacman) _install_pacman ;;
   yay) yay -S "$confirm_flag" --needed "${packages[@]}" ;;
   apt) sudo apt update && sudo apt install "$confirm_flag" "${packages[@]}" ;;
   dnf) sudo dnf install "$confirm_flag" "${packages[@]}" ;;
