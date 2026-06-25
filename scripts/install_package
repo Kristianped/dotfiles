@@ -80,15 +80,76 @@ _install_pacman() {
   done
 }
 
+_install_yay() {
+  yay -Syu
+  local pkg
+  for pkg in "${packages[@]}"; do
+    yay -S "$confirm_flag" --needed "$pkg"
+  done
+}
+
+_install_apt() {
+  sudo apt update
+  local pkg
+  for pkg in "${packages[@]}"; do
+    sudo apt install "$confirm_flag" "$pkg"
+  done
+}
+
+_install_dnf() {
+  sudo dnf makecache
+  local pkg
+  for pkg in "${packages[@]}"; do
+    sudo dnf install "$confirm_flag" "$pkg"
+  done
+}
+
+_install_flatpak() {
+  flatpak update --user --appstream
+  local pkg
+  for pkg in "${packages[@]}"; do
+    flatpak install flathub --user "$confirm_flag" "$pkg"
+  done
+}
+
+_install_snap() {
+  local pkg
+  for pkg in "${packages[@]}"; do
+    sudo snap install "$pkg"
+  done
+}
+
+_install_brew() {
+  local is_cask brew_opt no_ask pkg
+  is_cask=$1
+  brew_opt=""
+  no_ask=0
+  is_true "$is_cask" && brew_opt="--cask"
+  is_true "$packages_auto_confirm" && no_ask=1
+
+
+  HOMEBREW_NO_ASK=$no_ask brew update
+  for pkg in "${packages[@]}"; do
+    HOMEBREW_NO_ASK=$no_ask brew install "$brew_opt" "$pkg"
+  done
+}
+
+_install_mise() {
+  local pkg
+  for pkg in "${packages[@]}"; do
+    mise use -g "$pkg"
+  done
+}
+
 case $manager in
   pacman) _install_pacman ;;
-  yay) yay -S "$confirm_flag" --needed "${packages[@]}" ;;
-  apt) sudo apt update && sudo apt install "$confirm_flag" "${packages[@]}" ;;
-  dnf) sudo dnf install "$confirm_flag" "${packages[@]}" ;;
-  flatpak) flatpak install "$confirm_flag" --user flathub "${packages[@]}" ;;
-  snap) sudo snap install "${packages[@]}" ;;
-  brew) brew install "${packages[@]}" ;;
-  brew-cask) brew install --cask "${packages[@]}" ;;
-  mise) mise use --global "${packages[@]}" ;;
+  yay) _install_yay ;;
+  apt) _install_apt ;;
+  dnf) _install_dnf ;;
+  flatpak) _install_flatpak ;;
+  snap) _install_snap ;;
+  brew) _install_brew 0 ;;
+  brew-cask) _install_brew 1 ;;
+  mise) _install_mise ;;
   *) error "Unknown package manager: '$manager'" ;;
 esac

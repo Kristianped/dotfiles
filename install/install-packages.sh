@@ -34,7 +34,7 @@ _install_arch() {
   fi
 
   # Install packages
-  install_package -m=pacman --y "${PACKAGES_PACMAN[@]}"
+  install_package -m=pacman -y "${PACKAGES_PACMAN[@]}"
 
   # Install Yay
   local yay_version_local yay_version_remote
@@ -54,7 +54,7 @@ _install_arch() {
 
 _install_debian() {
   # Install packages
-  install_package -m=apt "${PACKAGES_APT[@]}"
+  install_package -m=apt -y "${PACKAGES_APT[@]}"
 }
 
 case $OS_DISTRO in
