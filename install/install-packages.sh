@@ -34,6 +34,7 @@ _install_arch() {
   fi
 
   # Install packages
+  sudo pacman -Syyu
   install_package -m=pacman "${PACKAGES_PACMAN[@]}"
 
   # Install Yay
