@@ -13,6 +13,8 @@ OS_VERSION=${BUILD_ID:-${VERSION_ID:-VERSION_CODENAME}}
 
 if [[ $OS_DISTRO_LIKE =~ (ubuntu|debian) ]]; then
   OS_DISTRO="debian"
+elif [[ $OS_DISTRO_LIKE =~ (rhel|centos|fedora) ]]; then
+  OS_DISTRO="fedora"
 fi
 
 _install_arch() {
@@ -57,8 +59,17 @@ _install_debian() {
   install_package -m=apt -y "${PACKAGES_APT[@]}"
 }
 
+_install_fedora() {
+  # Install packages
+  install_package -m=dnf -y "${PACKAGES_DNF[@]}"
+
+  # Install group packages
+  install_package -m=dnf-group -y "${GROUP_PACKAGES_DNF}"
+}
+
 case $OS_DISTRO in
   arch) _install_arch ;;
   debian) _install_debian ;;
+  fedora) _install_fedora ;;
   *) warning "Distro not supported. '$OS_DISTRO_ORIGINAL' based on '$OS_DISTRO_LIKE'. Version: '$OS_VERSION'"
 esac

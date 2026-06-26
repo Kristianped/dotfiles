@@ -27,6 +27,7 @@ export PACKAGES_APT=(
   "zsh"
 )
 
+# Packages to install for Arch
 export PACKAGES_PACMAN=(
   "base"
   "base-devel"
@@ -46,8 +47,36 @@ export PACKAGES_PACMAN=(
   "readline"
   "unzip"
   "wget"
-  "xdg-user-dirst"
+  "xdg-user-dirs"
   "xz"
   "zip"
   "zsh"
+)
+
+# Packages to install for Fedora/RHEL/Alma. EPEL repository must be enabled
+export PACKAGES_DNF=(
+  "bind-utils"
+  "chafa"
+  "curl"
+  "fastfetch"
+  "file"
+  "fontconfig"
+  "gnupg2"
+  "less"
+  "man-db"
+  "man-pages"
+  "perl-Image-ExifTool"
+  "procps-ng"
+  "readline"
+  "unzip"
+  "wget"
+  "xdg-user-dirs"
+  "xz"
+  "zip"
+  "zsh"
+)
+
+# Group packages to install for Fedora/RHEL/Alma
+export GROUP_PACKAGES_DNF=(
+  "development-tools"
 )

@@ -68,7 +68,7 @@ if is_true "$packages_auto_confirm"; then
     pacman) confirm_flag="--noconfirm" ;;
     yay) confirm_flag="--noconfirm --answerdiff None --answerclean None" ;;
     apt) confirm_flag="--yes" ;;
-    dnf|flatpak) confirm_flag="--assumeyes" ;;
+    dnf|dnf-group|flatpak) confirm_flag="--assumeyes" ;;
   esac
 fi
 
@@ -97,10 +97,14 @@ _install_apt() {
 }
 
 _install_dnf() {
+  local is_group dnf_opt pkg
+  is_group=$1
+  dnf_opt=""
+  is_true "$is_group" && dnf_opt="group"
+
   sudo dnf makecache
-  local pkg
   for pkg in "${packages[@]}"; do
-    sudo dnf install "$confirm_flag" "$pkg"
+    sudo dnf "$dnf_opt" install "$confirm_flag" "$pkg"
   done
 }
 
@@ -120,17 +124,14 @@ _install_snap() {
 }
 
 _install_brew() {
-  local is_cask brew_opt no_ask pkg
+  local is_cask brew_opt pkg
   is_cask=$1
   brew_opt=""
-  no_ask=0
   is_true "$is_cask" && brew_opt="--cask"
-  is_true "$packages_auto_confirm" && no_ask=1
 
-
-  HOMEBREW_NO_ASK=$no_ask brew update
+  HOMEBREW_NO_ASK=$packages_auto_confirm brew update
   for pkg in "${packages[@]}"; do
-    HOMEBREW_NO_ASK=$no_ask brew install "$brew_opt" "$pkg"
+    HOMEBREW_NO_ASK=$packages_auto_confirm brew install "$brew_opt" "$pkg"
   done
 }
 
@@ -145,7 +146,8 @@ case $manager in
   pacman) _install_pacman ;;
   yay) _install_yay ;;
   apt) _install_apt ;;
-  dnf) _install_dnf ;;
+  dnf) _install_dnf 0 ;;
+  dnf-group) _install_dnf 1 ;;
   flatpak) _install_flatpak ;;
   snap) _install_snap ;;
   brew) _install_brew 0 ;;
