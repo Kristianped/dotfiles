@@ -67,7 +67,7 @@ export PACKAGES_DNF=(
   "man-pages"
   "perl-Image-ExifTool"
   "procps-ng"
-  "readline"
+  "readline-devel"
   "unzip"
   "wget"
   "xdg-user-dirs"

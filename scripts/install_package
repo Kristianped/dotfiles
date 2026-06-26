@@ -102,7 +102,7 @@ _install_dnf() {
 
   for pkg in "${packages[@]}"; do
     if is_true "$is_group"; then
-      sudo dnf group install "$confirm_flag" \""$pkg"\"
+      sudo dnf group install "$confirm_flag" "$pkg"
     else
       sudo dnf install "$confirm_flag" "$pkg"
     fi
