@@ -78,5 +78,5 @@ export PACKAGES_DNF=(
 
 # Group packages to install for Fedora/RHEL/Alma
 export GROUP_PACKAGES_DNF=(
-  "development-tools"
+  "Development Tools"
 )

@@ -97,14 +97,15 @@ _install_apt() {
 }
 
 _install_dnf() {
-  local is_group dnf_opt pkg
+  local is_group pkg
   is_group=$1
-  dnf_opt=""
-  is_true "$is_group" && dnf_opt="group"
 
-  sudo dnf makecache
   for pkg in "${packages[@]}"; do
-    sudo dnf "$dnf_opt" install "$confirm_flag" "$pkg"
+    if is_true "$is_group"; then
+      sudo dnf group install "$confirm_flag" '"$pkg"'
+    else
+      sudo dnf install "$confirm_flag" "$pkg"
+    fi
   done
 }
 
