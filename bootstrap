@@ -224,11 +224,12 @@ mes_update() {
 }
 
 dot_install() {
+  local install_file
   printf "%b--> Installing %b%s %bconfig %b\n" "$BLUE" "$YELLOW" "$1" "$BLUE" "$NC"
-  local file="$DOTFILES/install/install-$1.sh"
+  install_file="$DOTFILES/install/install-$1.sh"
 
   if [[ -f $file ]]; then
-    "$file"
+    "$install_file"
   else
     error "Found no install file with name $1"
   fi
