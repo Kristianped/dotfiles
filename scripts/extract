@@ -34,30 +34,24 @@ _parse_args() {
     case $i in
       -h|--help)
         _usage
-        exit 0
-        ;;
+        exit 0 ;;
       -r|--remove)
         remove_archive=1
-        shift
-        ;;
+        shift ;;
       -d|--directory)
         own_dir=1
-        shift
-        ;;
+        shift ;;
       -dn=*|--dir-name=*)
         own_dir=1
         extract_dir_name="${i#*=}"
-        shift
-        ;;
+        shift ;;
       -*)
-        error "Unknown option: '$1'"
-        ;;
+        error "Unknown option: '$1'" ;;
       *)
-        ;;
+        files+=("$1")
+        shift ;;
     esac
   done
-
-  files=("$@")
 }
 
 _extract_to_dir() {

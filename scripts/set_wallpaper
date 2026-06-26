@@ -6,8 +6,7 @@ set -o nounset
 
 source "$DOTFILES/bootstrap"
 
-WALLPAPER_DIR=$XDG_CONFIG_HOME/wallpaper
-CURRENT_WALLPAPER=$WALLPAPER_DIR/current_wallpaper
+CURRENT_WALLPAPER=$XDG_CONFIG_HOME/current_wallpaper
 
 wallpaper_file=""
 keep_current=0
@@ -38,27 +37,31 @@ _pick_fzf() {
 }
 
 _pick_wallpaper() {
-  local current default_wallpaper new_wallpaper
-
-  # Use 'starry-night.jpg' as default
-  default_wallpaper="starry-night.jpg"
-
-  # get current wallpaper, if exist.
-  [[ -L $CURRENT_WALLPAPER ]] && current=$(basename "$(readlink -f "$CURRENT_WALLPAPER")")
-
-  # If option --keep-current, we return the current wallpaper
+  # If option 'keep-current' is enabled we keep the existing wallpaper. If the
+  # existing wallpaper does not exist however, we use a default.
   if is_true "$keep_current"; then
-    new_wallpaper=${current:-$default_wallpaper}
-  else
-    # Pick from 'dotfiles/wallpapers' with fzf
-    new_wallpaper=$(_pick_fzf)
+    if [[ -L $CURRENT_WALLPAPER && -s $CURRENT_WALLPAPER ]]; then
+      wallpaper_file=$(readlink -f "$CURRENT_WALLPAPER")
+    else
+      wallpaper_file=$DOTFILES/wallpapers/starry-night.jpg
+    fi
+    return 0
   fi
 
-  echo "$new_wallpaper"
+  # Pick from 'dotfiles/wallpapers' with fzf
+  local new_wallpaper
+  new_wallpaper=$(_pick_fzf)
+
+  # If no wallpaper is picked, return 1
+  [[ -z $new_wallpaper ]] && return 1
+
+  wallpaper_file=$DOTFILES/wallpapers/$new_wallpaper
+  return 0
 }
 
 _parse_args() {
-  local i
+  local i provided_wallpaper
+
   for i in "$@"; do
     case $i in
       -h|--help)
@@ -71,8 +74,7 @@ _parse_args() {
         keep_current=1
         shift ;;
       -f=*|--file=*)
-        wallpaper_file="${i#*=}"
-        keep_current=0
+        provided_wallpaper="${i#*=}"
         shift ;;
       -*) error "Unknown option: '$1'" ;;
       *) ;;
@@ -80,13 +82,14 @@ _parse_args() {
   done
 
   # Explicit file provided
-  [[ -n $wallpaper_file ]] && return
+  if [[ -n ${provided_wallpaper:-} ]]; then
+    wallpaper_file="$(readlink -f "$provided_wallpaper" 2>/dev/null || echo "$provided_wallpaper")"
+    keep_current=0
+    return
+  fi
 
   if [ $# -eq 0 ]; then
-    local picked_wallpaper
-    picked_wallpaper=$(_pick_wallpaper)
-    [[ -z $picked_wallpaper ]] && return 1
-    wallpaper_file=$DOTFILES/wallpapers/$picked_wallpaper
+    _pick_wallpaper
   else
     wallpaper_file=$DOTFILES/wallpapers/$1
   fi
@@ -94,8 +97,6 @@ _parse_args() {
 
 _set_wallpaper() {
   [[ ! -f $wallpaper_file ]] && error "Wallpaper '$wallpaper_file' not found, aborting!"
-
-  mkdir -p "$WALLPAPER_DIR"
 
   ln -sf "$wallpaper_file" "$CURRENT_WALLPAPER"
   gsettings set org.gnome.desktop.background picture-uri "file:///$CURRENT_WALLPAPER"
