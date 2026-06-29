@@ -87,10 +87,12 @@ _extract_to_dir() {
   mkdir -p "$extract_dir"
 
   # Cd into the directory and extract archive
-  (
-    cd "$extract_dir"
-    extract_file "$full_path"
-  )
+  if cd "$extract_dir" >/dev/null 2>&1; then
+    extract_file "$full_path" || return 1
+    cd - >/dev/null 2>&1 || return 1
+  else
+    return 1
+  fi
 
   # remove the archive-file if '-r' is provided
   is_true "$remove_archive" && rm -r "$full_path"
@@ -102,10 +104,13 @@ _extract_to_dir() {
   content=("$extract_dir"/*)
   shopt -u dotglob nullglob
 
+  info "${content[*]}"
+
   # Check content-length is 1 and that content[0] exists
   if [[ ${#content[@]} -eq 1 && -e "${content[0]}" ]]; then
     local content_name
     content_name="$(basename "${content[0]}")"
+    info "$content_name"
 
     # If the extracted file/folder has the same name as extract_dir(without random suffix) we need to take a few steps
     # 1. Move and rename the extracted file/folder to a temporary random name

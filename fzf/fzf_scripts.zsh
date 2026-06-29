@@ -38,8 +38,13 @@ fexec() {
 }
 
 # List install files for dotfiles
-fdot() {
+fdoti() {
   fexec "$DOTFILES/install"
+}
+
+# List update files for dotfiles
+fdotu() {
+  fexec "$DOTFILES/update"
 }
 
 # Kill process

@@ -16,6 +16,13 @@ if ! command -v dnf >/dev/null 2>&1; then
   exit 64
 fi
 
+preview_fun() {
+  local pkg_name
+  pkg_name=$(echo "$1" | awk '{print $1}')
+  dnf --cacheonly --quiet --color=always info "$pkg_name"
+}
+export -f preview_fun
+
 #Colors
 declare -r esc=$'\033'
 declare -r BLUE="${esc}[1m${esc}[34m"
@@ -80,7 +87,7 @@ if tmp_file="$(mktemp --tmpdir "${script_name}".XXXXXX)"; then
 	--prompt="${INS_PRMPT}" \
 	--marker=' ' \
 	--preview-window='right,67%,wrap' \
-	--preview="${INS_PRVW} {1}" \
+	--preview="bash -c 'preview_fun {1}'" \
 	--bind="enter:execute(if grep -q 'in' \"${tmp_file}\"; then sudo dnf install {+};
         elif grep -q 'rm' \"${tmp_file}\"; then sudo dnf remove {+}; \
         elif grep -q 'up' \"${tmp_file}\"; then sudo dnf upgrade {+}; fi; \

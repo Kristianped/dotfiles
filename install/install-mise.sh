@@ -46,6 +46,7 @@ _install() {
   mise use -g fzf
   mise use -g gh
   mise use -g jq
+  mise use -g lazygit
   mise use -g pandoc
   mise use -g ripgrep
   mise use -g shfmt
@@ -93,33 +94,6 @@ _install() {
   mise use -g elixir@1.19.5
 }
 
-_update() {
-  local old_python_version new_python_version
-
-  # Get python-version before update
-  old_python_version="0"
-  has_cmd python && old_python_version=$(python --version | grep -Po "(\d+\.)+\d+")
-
-  # Update mise
-  mise self-update -y
-
-  # Update tools
-  mise install
-  wait
-
-  # Get python-version after update, if change we must update pipx-packages
-  if has_cmd python; then
-    new_python_version=$(python --version | grep -Po "(\d+\.)+\d+")
-
-    if [ "$old_python_version" = "$new_python_version" ]; then
-      return 0
-    fi
-
-    mise install -f "pipx:*"
-    wait
-  fi
-}
-
 # If mise is not installed, then we install it.
 # If mise is installed and FORCE_INSTALL is set to true, we also install
 should_install=0
@@ -130,6 +104,5 @@ if is_true "$should_install"; then
   info "Installing mise"
   _install
 else
-  info "Updating Mise"
-  _update
+  info "Mise is already installed. Run update-script to update"
 fi

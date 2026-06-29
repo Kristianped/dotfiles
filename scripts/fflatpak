@@ -165,7 +165,8 @@ mapfile -d '' fhelp <<-EOF
         Alt-i       Install mode (default)
         Alt-r       Remove mode
         Alt+p       Remove mode (purge)
-        Alt-u       Updates mode
+        Alt-u       Update mode
+        Ctrl+Alt+u  Upgrade all packages
         Alt-e       Execute mode(run installed packages)
         Alt-m       Update package metadata cache
         Alt+a       Remove unused runtimes and extensions
@@ -199,6 +200,7 @@ if tmp_file="$(mktemp --tmpdir "$script_name".XXXXXX)"; then
   --bind "alt-p:unbind(alt-p)+reload(bash -c rem_query)+change-prompt($pur_prompt)+execute-silent(printf 'pr' > \"${tmp_file}\")+first+rebind(alt-i,alt-r,alt-u,alt-e)" \
   --bind "alt-u:unbind(alt-u)+reload(bash -c upd_query)+change-prompt($upd_prompt)+execute-silent(printf 'up' > \"${tmp_file}\")+first+rebind(alt-i,alt-r,alt-p,alt-e)" \
   --bind "alt-e:unbind(alt-e)+reload(bash -c rem_query)+change-prompt($run_prompt)+execute-silent(printf 'rn' > \"${tmp_file}\")+first+rebind(alt-i,alt-r,alt-p,alt-u)" \
+  --bind "ctrl-alt-u:execute(flatpak --user update;read -s -r -n1 -p $'\nPress any key to continue...' && printf '\n')+reload(bash -c 'reload_query \"${tmp_file}\"')" \
   --bind "enter:execute(bash -c 'execute_query \"${tmp_file}\" {1}')+reload(bash -c 'reload_query \"${tmp_file}\"')"
 
   rm -f "${tmp_file}" &> /dev/null

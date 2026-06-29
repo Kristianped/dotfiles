@@ -1,14 +1,24 @@
 #!/usr/bin/env bash
 
 source "$DOTFILES/bootstrap"
-force_install=${FORCE_INSTALL:-0}
+NVIM_HOME=$XDG_DATA_HOME/nvim
+
+_check_nvim() {
+  local bin_folder bin_file
+  bin_folder=$NVIM_HOME/bin
+  bin_file=$bin_folder/nvim
+
+  if [[ -d $NVIM_HOME && -d $bin_folder && -f $bin_file ]]; then
+    return 0
+  fi
+  return 1
+}
 
 _install_latest() {
-  local nvim_home nvim_archive applications_home nvim_man_file man_folder
+  local nvim_archive applications_home nvim_man_file man_folder
 
   # Remove the data-directory
-  nvim_home=$XDG_DATA_HOME/nvim
-  [[ -d $nvim_home ]] && rm -rf "$nvim_home"
+  [[ -d $NVIM_HOME ]] && rm -rf "$NVIM_HOME"
 
   # Download the latest release into "nvim.tar.gz"
   nvim_archive=$(download -o -f=nvim.tar.gz https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz)
@@ -17,24 +27,24 @@ _install_latest() {
   do_action_in_dir "$XDG_DATA_HOME" extract -r -d "$nvim_archive"
 
   # If the directory nvim_home is not present, something went wrong
-  [[ -d $nvim_home ]] || error "Something went wrong when installing the latest nvim release"
+  [[ -d $NVIM_HOME ]] || error "Something went wrong when installing the latest nvim release"
 
   # Add nvim.dektop to a place it can be found
-  if [[ -f $nvim_home/share/applications/nvim.desktop ]]; then
+  if [[ -f $NVIM_HOME/share/applications/nvim.desktop ]]; then
     info "Adding desktop file for nvim"
     applications_home="$XDG_DATA_HOME/applications"
     mkdir -p "$applications_home"
 
     # copy nvim.desktop to applications_home
-    \cp "$nvim_home/share/applications/nvim.desktop" "$applications_home/nvim.desktop"
+    \cp "$NVIM_HOME/share/applications/nvim.desktop" "$applications_home/nvim.desktop"
 
     # Update the paths to nvim-executable and icon in the nvim desktop file
-    sed -i "s|Icon=nvim|Icon=$nvim_home/share/icons/hicolor/128x128/apps/nvim.png|g" "$applications_home/nvim.desktop"
-    sed -i "s|Exec=nvim|Exec=$nvim_home/bin/nvim|g" "$applications_home/nvim.desktop"
+    sed -i "s|Icon=nvim|Icon=$NVIM_HOME/share/icons/hicolor/128x128/apps/nvim.png|g" "$applications_home/nvim.desktop"
+    sed -i "s|Exec=nvim|Exec=$NVIM_HOME/bin/nvim|g" "$applications_home/nvim.desktop"
   fi
 
   # Symlink the man page
-  nvim_man_file=$nvim_home/share/man/man1/nvim.1
+  nvim_man_file=$NVIM_HOME/share/man/man1/nvim.1
   if [[ -f $nvim_man_file ]]; then
     info "Adding man page for nvim"
     man_folder=$XDG_MAN_HOME/man1
@@ -63,16 +73,29 @@ _symlink_folder() {
   find "$dot_folder/" -maxdepth 1 -type f -exec ln -sf {} "$config_folder/" \;
 }
 
-# If nvim is not installed, then we install it.
-# If nvim is installed and FORCE_INSTALL is set to true, we also install
-should_install=0
-has_cmd nvim || should_install=1
-has_cmd nvim && is_true "$force_install" && should_install=1
+_symlink_folders() {
+  _symlink_folder ""
+  _symlink_folder "lua/config"
+  _symlink_folder "lua/plugins"
+  _symlink_folder "lua/plugins/lang"
+  _symlink_folder "spell"
+}
 
-is_true "$should_install" && _install_latest
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  force_install=${FORCE_INSTALL:-0}
 
-_symlink_folder ""
-_symlink_folder "lua/config"
-_symlink_folder "lua/plugins"
-_symlink_folder "lua/plugins/lang"
-_symlink_folder "spell"
+  # If nvim is not installed, then we install it.
+  # If nvim is installed and FORCE_INSTALL is set to true, we also install
+  should_install=0
+  _check_nvim || should_install=1
+  _check_nvim && is_true "$force_install" && should_install=1
+
+  if is_true "$should_install"; then
+    info "Installing nvim"
+    _install_latest
+    _symlink_folders
+    success "nvim installed"
+  else
+    info "nvim already installed. Run update-script to update"
+  fi
+fi

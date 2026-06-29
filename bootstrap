@@ -67,6 +67,17 @@ do_action_in_dir() {
   return "$ret_val"
 }
 
+trim_string() {
+  local string trimmed
+  string="$1"
+
+  # Trim leading whitespace
+  trimmed="${string#"${string%%[![:space:]]*}"}"
+  # Trim trailing whitespace
+  trimmed="${trimmed%"${trimmed##*[![:space:]]}"}"
+  echo "$trimmed"
+}
+
 remove_broken_symlinks() {
   find "$1" -maxdepth 1 -xtype l -delete
 }
@@ -218,18 +229,25 @@ success() {
   mes_color "$GREEN" "$1"
 }
 
-mes_update() {
-  local msg="--> Updating $1"
-  mes_color "$YELLOW" "$msg"
-}
-
 dot_install() {
   local install_file
   printf "%b--> Installing %b%s %bconfig %b\n" "$BLUE" "$YELLOW" "$1" "$BLUE" "$NC"
   install_file="$DOTFILES/install/install-$1.sh"
 
-  if [[ -f $file ]]; then
+  if [[ -f $install_file ]]; then
     "$install_file"
+  else
+    error "Found no install file with name $1"
+  fi
+}
+
+dot_update() {
+  local update_file
+  printf "%b--> Updating %b%s %bconfig %b\n" "$BLUE" "$YELLOW" "$1" "$BLUE" "$NC"
+  update_file="$DOTFILES/update/update-$1.sh"
+
+  if [[ -f $update_file ]]; then
+    "$update_file"
   else
     error "Found no install file with name $1"
   fi

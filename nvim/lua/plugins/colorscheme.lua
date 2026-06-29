@@ -1,4 +1,5 @@
 return {
+  { "Mofiqul/dracula.nvim" },
   {
     "ellisonleao/gruvbox.nvim",
     opts = {
@@ -16,6 +17,7 @@ return {
       },
     },
   },
+  { "shaunsingh/nord.nvim" },
   {
     "folke/tokyonight.nvim",
     opts = {

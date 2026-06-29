@@ -9,26 +9,72 @@ source "$DOTFILES/bootstrap"
 packages_auto_confirm=0
 manager=""
 confirm_flag=""
-packages=()
+install_packages=()
+update_packages=()
 
 _usage() {
   cat <<\EOF
-  Utility program to install packages. The following package managers are supported:
+  Utility program to install/update packages. The following package managers are supported:
   - pacman
   - yay
   - apt
   - dnf
+  - dnf-group
   - flatpak
   - snap
   - brew
   - brew-cask
-  - mise
 
   Usage: install_package [options...] <packages>
   -h, --help               - Shows this text
   -m, --manager=<manager>  - The manager used to install packages; apt, pacman, yay etc.
-  -y, --yes                - Install packages without confirmation
+  -y, --yes                - Install/update packages without confirmation
 EOF
+}
+
+_refresh_metadata() {
+  case $manager in
+  pacman) sudo pacman -Syu ;;
+  yay) yay -Syu ;;
+  apt) sudo apt update ;;
+  dnf|dnf-group) sudo dnf makecache ;;
+  flatpak) flatpak update --user --appstream ;;
+  snap) ;;
+  brew|brew-cask) HOMEBREW_NO_ASK=$packages_auto_confirm brew update ;;
+  esac
+}
+
+# Return 0 if package is installed, 1 if not installed
+_is_package_installed() {
+  local pkg
+  pkg=$1
+
+  case $manager in
+    pacman) pacman -Qi "$pkg" &>/dev/null && retun 0 ;;
+    yay) yay -Qi "$pkg" &>/dev/null && return 0 ;;
+    apt) dpkg-query -W -f='${Status}' "$pkg" 2>/dev/null | grep -q "install ok installed" && return 0 ;;
+    dnf) dnf list installed "$pkg" >/dev/null 2>&1 && return 0 ;;
+    dnf-group) dnf group list --installed | grep -q "$pkg" && return 0 ;;
+    flatpak) flatpak info "$pkg" >/dev/null 2>&1 && return 0 ;;
+    snap) snap list | grep -q "$pkg " && return 0 ;;
+    brew) brew list "$pkg" >/dev/null 2>&1 && return 0 ;;
+    brew-cask) brew list --cask "$pkg" >/dev/null 2>&1 && return 0 ;;
+  esac
+
+  return 1
+}
+
+_get_outdated_packages() {
+  case $manager in
+    apt) apt list --upgradable -qq 2>/dev/null | cut -d '/' -f 1- --output-delimiter ' ' | cut -d ' ' -f1 ;;
+    dnf) dnf -q repoquery --upgrades --qf '%{name}' ;;
+    dnf-group) dnf group list --installed --quiet | tail -n +2 ;;
+    flatpak) flatpak remote-ls flathub --user --app --updates --columns=app | tail -n +1 ;;
+    snap) snap refresh --list ;;
+    brew) brew outdated | cut -f1 ;;
+    brew-cask) brew outdated --cask | cut -f1 ;;
+    *) echo "" ;;
+  esac
 }
 
 _parse_args() {
@@ -37,7 +83,8 @@ _parse_args() {
     exit 0
   fi
 
-  local i
+  local i packages pkg outdated_packages
+  packages=()
   for i in "$@"; do
     case $i in
       -h|--help)
@@ -59,39 +106,49 @@ _parse_args() {
   if [ ${#packages[@]} -eq 0 ]; then
     error "No packages provided"
   fi
+
+  _refresh_metadata
+
+  mapfile -t outdated_packages < <(_get_outdated_packages)
+  declare -A outdated_map
+  for pkg in "${outdated_packages[@]}"; do
+    outdated_map[$pkg]=1
+  done
+
+  # If package is installed, add it to update_packages. Else add it to install_packages
+  for pkg in "${packages[@]}"; do
+    if _is_package_installed "$pkg"; then
+      if [[ ${outdated_map[$pkg]+isset} ]]; then
+        update_packages+=("$pkg")
+      fi
+    else
+      install_packages+=("$pkg")
+    fi
+  done
 }
 
-_parse_args "$@"
-
-if is_true "$packages_auto_confirm"; then
-  case $manager in
-    pacman) confirm_flag="--noconfirm" ;;
-    yay) confirm_flag="--noconfirm --answerdiff None --answerclean None" ;;
-    apt) confirm_flag="--yes" ;;
-    dnf|dnf-group|flatpak) confirm_flag="--assumeyes" ;;
-  esac
-fi
-
 _install_pacman() {
-  sudo pacman -Syu
   local pkg
-  for pkg in "${packages[@]}"; do
+  for pkg in "${install_packages[@]}"; do
     sudo pacman -S "$confirm_flag" --needed "$pkg"
   done
 }
 
 _install_yay() {
-  yay -Syu
   local pkg
-  for pkg in "${packages[@]}"; do
+  for pkg in "${install_packages[@]}"; do
     yay -S "$confirm_flag" --needed "$pkg"
   done
 }
 
 _install_apt() {
-  sudo apt update
   local pkg
-  for pkg in "${packages[@]}"; do
+
+  for pkg in "${update_packages[@]}"; do
+    sudo apt install --only-upgrade "$confirm_flag" "$pkg"
+  done
+
+  for pkg in "${install_packages[@]}"; do
     sudo apt install "$confirm_flag" "$pkg"
   done
 }
@@ -100,7 +157,15 @@ _install_dnf() {
   local is_group pkg
   is_group=$1
 
-  for pkg in "${packages[@]}"; do
+  for pkg in "${update_packages[@]}"; do
+    if is_true "$is_group"; then
+      sudo dnf group upgrade "$confirm_flag" "$pkg"
+    else
+      sudo dnf upgrade "$confirm_flag" "$pkg"
+    fi
+  done
+
+  for pkg in "${install_packages[@]}"; do
     if is_true "$is_group"; then
       sudo dnf group install "$confirm_flag" "$pkg"
     else
@@ -110,38 +175,59 @@ _install_dnf() {
 }
 
 _install_flatpak() {
-  flatpak update --user --appstream
   local pkg
-  for pkg in "${packages[@]}"; do
+
+  for pkg in "${update_packages[@]}"; do
+    flatpak update "$confirm_flag" "$pkg"
+  done
+
+  for pkg in "${install_packages[@]}"; do
     flatpak install flathub --user "$confirm_flag" "$pkg"
   done
 }
 
 _install_snap() {
   local pkg
-  for pkg in "${packages[@]}"; do
+
+  for pkg in "${update_packages[@]}"; do
+    sudo snap refresh "$pkg"
+  done
+
+  for pkg in "${install_packages[@]}"; do
     sudo snap install "$pkg"
   done
 }
 
 _install_brew() {
-  local is_cask brew_opt pkg
-  is_cask=$1
-  brew_opt=""
-  is_true "$is_cask" && brew_opt="--cask"
+  for pkg in "${update_packages[@]}"; do
+    HOMEBREW_NO_ASK=$packages_auto_confirm brew upgrade "$pkg"
+  done
 
-  HOMEBREW_NO_ASK=$packages_auto_confirm brew update
-  for pkg in "${packages[@]}"; do
-    HOMEBREW_NO_ASK=$packages_auto_confirm brew install "$brew_opt" "$pkg"
+  for pkg in "${install_packages[@]}"; do
+    HOMEBREW_NO_ASK=$packages_auto_confirm brew install "$pkg"
   done
 }
 
-_install_mise() {
-  local pkg
-  for pkg in "${packages[@]}"; do
-    mise use -g "$pkg"
+_install_brew_cask() {
+  for pkg in "${update_packages[@]}"; do
+    HOMEBREW_NO_ASK=$packages_auto_confirm brew upgrade --cask "$pkg"
+  done
+
+  for pkg in "${install_packages[@]}"; do
+    HOMEBREW_NO_ASK=$packages_auto_confirm brew install --cask "$pkg"
   done
 }
+
+_parse_args "$@"
+
+if is_true "$packages_auto_confirm"; then
+  case $manager in
+  pacman) confirm_flag="--noconfirm" ;;
+  yay) confirm_flag="--noconfirm --answerdiff None --answerclean None" ;;
+  apt) confirm_flag="--yes" ;;
+  dnf|dnf-group|flatpak) confirm_flag="--assumeyes" ;;
+  esac
+fi
 
 case $manager in
   pacman) _install_pacman ;;
@@ -151,8 +237,7 @@ case $manager in
   dnf-group) _install_dnf 1 ;;
   flatpak) _install_flatpak ;;
   snap) _install_snap ;;
-  brew) _install_brew 0 ;;
-  brew-cask) _install_brew 1 ;;
-  mise) _install_mise ;;
+  brew) _install_brew ;;
+  brew-cask) _install_brew_cask ;;
   *) error "Unknown package manager: '$manager'" ;;
 esac

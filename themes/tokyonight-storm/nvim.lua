@@ -1,9 +1,9 @@
 return {
-	{
-		"LazyVim/LazyVim",
-		opts = {
-			colorscheme = "tokyonight-storm",
-		},
-	},
+  {
+    "LazyVim/LazyVim",
+    opts = {
+      colorscheme = "tokyonight-storm",
+    },
+  },
 }
 

@@ -22,7 +22,7 @@ mes_color "$MAGENTA" "$skull"
 echo
 mes_color "$YELLOW" "!!! WARNING !!!"
 mes_color "$LIGHT_RED" "This script will delete all your configuration files!"
-mes_color "$LIGHT_RED" "Use it at your own risks."
+mes_color "$LIGHT_RED" "Use it at your own risk."
 
 if ! prompt_ask; then
   exit 0
