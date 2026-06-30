@@ -21,6 +21,11 @@ preview_fun() {
   local pkg_name
   pkg_name=$(echo "$1" | awk '{print $1}')
 
+  if [[ $pkg_name == "No-updates-available" ]]; then
+    echo "Try refreshing metadata cache..."
+    return
+  fi
+
   apt-cache show "$pkg_name" | awk -v ylw="$(tput setaf 3)" -v wht="$(tput setaf 7)" -v bold="$(tput bold)" -v reset="$(tput sgr0)" \
     '
       {
@@ -82,7 +87,7 @@ upd_query() {
   pkg_count=$(apt list --upgradable -qq 2>/dev/null | wc -l)
 
   if [[ $pkg_count -eq 0 ]]; then
-    echo "No updates available"
+    echo "No-updates-available"
   else
     apt list --upgradable -qq 2>/dev/null | cut -d '/' -f 1- --output-delimiter ' ' | cut -d ' ' -f 1,3,5- | sort \
       | awk -v cyan="$(tput setaf 6)" -v blue="$(tput setaf 4)" -v bold="$(tput bold)" -v reset="$(tput sgr0)" \
@@ -118,26 +123,27 @@ export -f reload_query
 execute_query() {
   local tmp_file mode pkg_name
   tmp_file="$1"
-  mode=$(cat "$tmp_file")
   pkg_name=$(echo "$2" | awk '{print $1}')
 
+  if [[ $pkg_name = "No-updates-available" ]]; then
+    return
+  fi
+
+  mode=$(cat "$tmp_file")
   case $mode in
-    in) sudo apt -y install "$pkg_name" ;;
-    rm) sudo apt -y remove "$pkg_name" ;;
-    pr) sudo apt -y purge "$pkg_name" ;;
-    up)
-      [[ $2 = "No updates available" ]] && return
-      sudo apt -y install --only-upgrade "$pkg_name"
-      ;;
-    *) read -s -r -n1 -p $'\nPress any key to continue...' && printf '\n' ;;
+    in) sudo apt install "$pkg_name" ;;
+    rm) sudo apt remove "$pkg_name" ;;
+    pr) sudo apt purge "$pkg_name" ;;
+    up) sudo apt install --only-upgrade "$pkg_name" ;;
   esac
+  read -s -r -n1 -p $'\nPress any key to continue...' && printf '\n'
 }
 export -f execute_query
 
 mapfile -d '' fhelp <<-EOF
 
         "${script_name}"
-        Interactive package manager for Ubuntu
+        Interactive package manager for Debian
 
         Alt-i       Install mode (default)
         Alt-r       Remove mode
@@ -167,16 +173,16 @@ if tmp_file="$(mktemp --tmpdir "$script_name".XXXXXX)"; then
     --preview "bash -c 'preview_fun {1}'" \
     --bind "alt-h:preview(printf \"${fhelp[0]}\")" \
     --bind "alt-m:execute(sudo apt update;read -s -r -n1 -p $'\nPress any key to continue...' && printf '\n')+reload(bash -c 'reload_query \"${tmp_file}\"')" \
-    --bind "alt-a:execute(sudo apt -y autoremove;read -s -r -n1 -p $'\nPress any key to continue...' && printf '\n')+reload(bash -c 'reload_query \"${tmp_file}\"')" \
+    --bind "alt-a:execute(sudo apt autoremove;read -s -r -n1 -p $'\nPress any key to continue...' && printf '\n')+reload(bash -c 'reload_query \"${tmp_file}\"')" \
     --bind "alt-i:unbind(alt-i)+reload(bash -c ins_query)+change-prompt($ins_prompt)+execute-silent(printf 'in' > \"${tmp_file}\")+first+rebind(alt-r,alt-p,alt-u)" \
     --bind "alt-r:unbind(alt-r)+reload(bash -c rem_query)+change-prompt($rem_prompt)+execute-silent(printf 'rm' > \"${tmp_file}\")+first+rebind(alt-i,alt-p,alt-u)" \
     --bind "alt-p:unbind(alt-p)+reload(bash -c rem_query)+change-prompt($pur_prompt)+execute-silent(printf 'pr' > \"${tmp_file}\")+first+rebind(alt-i,alt-r,alt-u)" \
     --bind "alt-u:unbind(alt-u)+reload(bash -c upd_query)+change-prompt($upd_prompt)+execute-silent(printf 'up' > \"${tmp_file}\")+first+rebind(alt-i,alt-r,alt-p)" \
-    --bind "ctrl-alt-u:execute(sudo apt -y upgrade;read -s -r -n1 -p $'\nPress any key to continue...' && printf '\n')+reload(bash -c 'reload_query \"${tmp_file}\"')" \
+    --bind "ctrl-alt-u:execute(sudo apt upgrade;read -s -r -n1 -p $'\nPress any key to continue...' && printf '\n')+reload(bash -c 'reload_query \"${tmp_file}\"')" \
     --bind "enter:execute(bash -c 'execute_query \"${tmp_file}\" {1}')+reload(bash -c 'reload_query \"${tmp_file}\"')"
 
+  rm -f "$tmp_file" &> /dev/null
 else
-  rm -f "${tmp_file}" &> /dev/null
   printf "%b%s%b\n" "$RED" "Failed to create tmp file. $TMPDIR (or /tmp if $TMPDIR is unset) may not be writable." "$NC"
   exit 65
 fi

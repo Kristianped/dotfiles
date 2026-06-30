@@ -19,39 +19,146 @@ fi
 preview_fun() {
   local pkg_name
   pkg_name=$(echo "$1" | awk '{print $1}')
-  dnf --cacheonly --quiet --color=always info "$pkg_name"
+
+  if [[ $pkg_name = "No-updates-available" ]]; then
+    echo "Try refreshing metadata cache..."
+    return
+  fi
+
+  dnf --quiet info "$pkg_name" \
+    | awk -v ylw="$(tput setaf 3)" -v wht="$(tput setaf 7)" -v bold="$(tput bold)" -v reset="$(tput sgr0)" \
+    '
+      {
+        if (match($0, ":") && substr($0, 0, 1) != " ") {
+          print ylw bold substr($0, 0, RSTART - 1) reset wht substr($0, RSTART) reset
+        } else {
+          print wht $0 reset
+        }
+      }
+    '
 }
 export -f preview_fun
 
-#Colors
-declare -r esc=$'\033'
-declare -r BLUE="${esc}[1m${esc}[34m"
-declare -r RED="${esc}[31m"
-declare -r GREEN="${esc}[32m"
-declare -r YELLOW="${esc}[33m"
-declare -r CYAN="${esc}[36m"
-# Base commands
-declare -r QRY="dnf --cacheonly --quiet repoquery "
-declare -r PRVW="dnf --cacheonly --quiet --color=always info"
-declare -r QRY_PRFX='  '
-declare -r QRY_SFFX=' > '
+
 # Install mode
-declare -r INS_QRYS="${QRY} --qf '${CYAN}%{name}'"
-declare -r INS_PRVW="${PRVW}"
-declare -r INS_PRMPT="${CYAN}${QRY_PRFX}Install packages${QRY_SFFX}"
+ins_query() {
+  dnf --cacheonly --quiet repoquery --qf '%{name} %{summary}' | sort \
+    | awk -v cyan="$(tput setaf 6)" -v blue="$(tput setaf 4)" -v bold="$(tput bold)" -v reset="$(tput sgr0)" \
+    '
+    {
+      info="";
+      for(i=2;i<=NF;i++) {
+        info=info" "$i
+      }
+      print blue bold $1" " reset cyan info reset
+    }
+    '
+}
+export -f ins_query
+ins_prompt=$(printf "%b%s%b" "$GREEN" "Install packages: " "$NC")
+
+
 # Remove mode
-declare -r RMV_QRYS="${QRY} --installed --qf '${RED}%{name}'"
-declare -r RMV_PRVW="${PRVW} --installed"
-declare -r RMV_PRMPT="${RED}${QRY_PRFX}Remove packages${QRY_SFFX}"
-# Remove-userinstalled mode
-declare -r RUI_QRYS="${QRY} --userinstalled --qf '${YELLOW}%{name}'"
-declare -r RUI_PRVW="${PRVW} --installed"
-declare -r RUI_PRMPT="${YELLOW}${QRY_PRFX}Remove User-Installed${QRY_SFFX}"
-# Updates mode
-declare -r UPD_QRY="${QRY} --upgrades --qf '${GREEN}%{name}'"
-declare -r UPD_QRYS="if [[ $(${UPD_QRY} | wc -c) -ne 0 ]]; then ${UPD_QRY}; else echo ${GREEN}No updates available.; echo Try refreshing metadata cache...; fi"
-declare -r UPD_PRVW="${PRVW}"
-declare -r UPD_PRMPT="${GREEN}${QRY_PRFX}Upgrade packages${QRY_SFFX}"
+list_rem_packages() {
+  local install_mode
+  install_mode=$1
+
+  dnf --cacheonly --quiet repoquery "$install_mode" --qf '%{name} %{installsize} %{version}' | sort \
+    | awk -v cyan="$(tput setaf 6)" -v blue="$(tput setaf 4)" -v bold="$(tput bold)" -v reset="$(tput sgr0)" \
+    '
+    function convert(value) {
+      split("B kB MB GB TB PB EB ZB YB", suffixes);
+      n = 1;
+      while(value >= 1000 && n < 9) {
+        value /= 1000;
+        n++;
+      }
+      return sprintf("%.2f %s", value, suffixes[n]);
+    }
+    {
+      value_in_bytes = $2;
+      print blue bold $1 reset cyan" - "$3" ("convert(value_in_bytes)")" reset
+    }'
+}
+export -f list_rem_packages
+
+rem_query() {
+  list_rem_packages "--installed"
+}
+export -f rem_query
+rem_prompt=$(printf "%b%s%b" "$YELLOW" "Remove package: " "$NC")
+
+usr_query() {
+  list_rem_packages "--userinstalled"
+}
+export -f usr_query
+usr_prompt=$(printf "%b%s%b" "$LIGHT_YELLOW" "Remove user-installed package: " "$NC")
+
+
+# Update mode
+upd_query() {
+  local pkg_count query
+  query="dnf --cacheonly --quiet repoquery --upgrades --qf '%{name}$ %{version}'"
+  pkg_count=$("$query" | wc -l)
+
+  if [[ $pkg_count -eq 0 ]]; then
+    echo "No-updates-available"
+  else
+    "$query" | sort \
+      | awk -v cyan="$(tput setaf 6)" -v blue="$(tput setaf 4)" -v bold="$(tput bold)" -v reset="$(tput sgr0)" \
+      '
+      {
+        info="";
+        for(i=2;i<=NF;i++) {
+          info=info" "$i
+        }
+        print blue bold $1" -" reset cyan info reset
+      }
+      '
+  fi
+}
+export -f upd_query
+upd_prompt=$(printf "%b%s%b" "$MAGENTA" "Update package: " "$NC")
+
+
+# Reload after an action
+reload_query() {
+  local tmp_file mode
+  tmp_file="$1"
+  mode=$(cat "$tmp_file")
+
+  case $mode in
+  in) ins_query ;;
+  rm) rem_query ;;
+  ru) usr_query ;;
+  up) upd_query ;;
+  esac
+}
+export -f reload_query
+
+
+# Execute
+execute_query() {
+  local tmp_file mode pkg_name
+  tmp_file="$1"
+  pkg_name=$(echo "$2" | awk '{print $1}')
+
+  if [[ $pkg_name = "No-updates-available" ]]; then
+    return
+  fi
+
+  mode=$(cat "$tmp_file")
+
+  case $mode in
+  in) sudo dnf install "$pkg_name" ;;
+  rm|ru) sudo dnf remove "$pkg_name" ;;
+  up) sudo dnf upgrade "$pkg_name" ;;
+  esac
+
+  read -s -r -n1 -p $'\nPress any key to continue...' && printf '\n'
+}
+export -f execute_query
+
 
 mapfile -d '' fhelp <<-EOF
 
@@ -61,47 +168,41 @@ mapfile -d '' fhelp <<-EOF
         Alt-i       Install mode (default)
         Alt-r       Remove mode
         Alt-e       Remove User-Installed mode
-        Alt-u       Updates mode
+        Alt-u       Update mode
+        Ctrl+Alt+u  Upgrade all packages
         Alt-m       Update package metadata cache
+        Alt+a       Remove unused dependencies
 
         Enter       Confirm selection
-        Tab         Mark package ()
-        Shift-Tab   Unmark package
-        Ctrl-a      Select all
-
-        ?           Help (this page)
+        Alt+h       Help (this page)
         ESC         Quit
 EOF
 
 declare tmp_file
-if tmp_file="$(mktemp --tmpdir "${script_name}".XXXXXX)"; then
-  printf 'in' > "${tmp_file}" &&
-  SHELL='/bin/bash' \
-  FZF_DEFAULT_COMMAND="${INS_QRYS}" \
-  fzf \
+if tmp_file="$(mktemp --tmpdir "$script_name".XXXXXX)"; then
+  printf 'in' > "$tmp_file" && ins_query | SHELL='/bin/bash' fzf \
+    --query "${*:-}" \
     --ansi \
-	--multi \
-	--query="$*" \
-	--header=" ${script_name} | Press Alt+h for help or ESC to quit" \
-	--header-first \
-	--prompt="${INS_PRMPT}" \
-	--marker=' ' \
-	--preview-window='right,67%,wrap' \
-	--preview="bash -c 'preview_fun {1}'" \
-	--bind="enter:execute(if grep -q 'in' \"${tmp_file}\"; then sudo dnf install {+};
-        elif grep -q 'rm' \"${tmp_file}\"; then sudo dnf remove {+}; \
-        elif grep -q 'up' \"${tmp_file}\"; then sudo dnf upgrade {+}; fi; \
-        read -s -r -n1 -p $'\n${BLUE}Press any key to continue...' && printf '\n')" \
-	--bind="alt-i:unbind(alt-i)+reload(${INS_QRYS})+change-preview(${INS_PRVW} {1})+change-prompt(${INS_PRMPT})+execute-silent(printf 'in' > \"${tmp_file}\")+first+rebind(alt-r,alt-e,alt-u)" \
-	--bind="alt-r:unbind(alt-r)+reload(${RMV_QRYS})+change-preview(${RMV_PRVW} {1})+change-prompt(${RMV_PRMPT})+execute-silent(printf 'rm' > \"${tmp_file}\")+first+rebind(alt-i,alt-e,alt-u)" \
-	--bind="alt-e:unbind(alt-e)+reload(${RUI_QRYS})+change-preview(${RUI_PRVW} {1})+change-prompt(${RUI_PRMPT})+execute-silent(printf 'rm' > \"${tmp_file}\")+first+rebind(alt-i,alt-r,alt-u)" \
-	--bind="alt-u:unbind(alt-u)+reload(${UPD_QRYS})+change-preview(${UPD_PRVW} {1})+change-prompt(${UPD_PRMPT})+execute-silent(printf 'up' > \"${tmp_file}\")+first+rebind(alt-i,alt-r,alt-e)" \
-	--bind="alt-m:execute(sudo dnf makecache;read -s -r -n1 -p $'\n${BLUE}Press any key to continue...' && printf '\n')" \
-	--bind="alt-h:preview(printf \"${fhelp[0]}\")" \
-	--bind="ctrl-a:select-all"
+	  --cycle \
+	  --reverse \
+    --marker=' ' \
+	  --header=" $script_name | Press Alt+h for help or ESC to quit" \
+	  --header-first \
+	  --prompt="$ins_prompt" \
+    --preview-window='right,50%,border-rounded' \
+	  --preview="bash -c 'preview_fun {1}'" \
+    --bind "alt-h:preview(printf \"${fhelp[0]}\")" \
+    --bind "alt-m:execute(sudo dnf makecache;read -s -r -n1 -p $'\nPress any key to continue...' && printf '\n')+reload(bash -c 'reload_query \"${tmp_file}\"')" \
+    --bind "alt-a:execute(sudo dnf autoremove;read -s -r -n1 -p $'\nPress any key to continue...' && printf '\n')+reload(bash -c 'reload_query \"${tmp_file}\"')" \
+	  --bind="alt-i:unbind(alt-i)+reload(bash -c ins_query)+change-prompt($ins_prompt)+execute-silent(printf 'in' > \"${tmp_file}\")+first+rebind(alt-r,alt-e,alt-u)" \
+	  --bind="alt-r:unbind(alt-r)+reload(bash -c rem_query)+change-prompt($rem_prompt)+execute-silent(printf 'rm' > \"${tmp_file}\")+first+rebind(alt-i,alt-e,alt-u)" \
+	  --bind="alt-e:unbind(alt-e)+reload(bash -c usr_query)+change-prompt($usr_prompt)+execute-silent(printf 'ru' > \"${tmp_file}\")+first+rebind(alt-i,alt-r,alt-u)" \
+	  --bind="alt-u:unbind(alt-u)+reload(bash -c upd_query)+change-prompt($upd_prompt)+execute-silent(printf 'up' > \"${tmp_file}\")+first+rebind(alt-i,alt-r,alt-e)" \
+    --bind "ctrl-alt-u:execute(sudo dnf upgrade;read -s -r -n1 -p $'\nPress any key to continue...' && printf '\n')+reload(bash -c 'reload_query \"${tmp_file}\"')" \
+    --bind "enter:execute(bash -c 'execute_query \"${tmp_file}\" {1}')+reload(bash -c 'reload_query \"${tmp_file}\"')"
 
   rm -f "${tmp_file}" &> /dev/null
 else
-  printf 'Error: Failed to create tmp file. $TMPDIR (or /tmp if $TMPDIR is unset) may not be writable.\n' >&2
+  printf "%b%s%b\n" "$RED" "Failed to create tmp file. $TMPDIR (or /tmp if $TMPDIR is unset) may not be writable." "$NC"
   exit 65
 fi
